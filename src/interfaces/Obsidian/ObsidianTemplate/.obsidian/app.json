@@ -1,0 +1,51 @@
+{
+  "spellcheck": true,
+  "spellcheckDictionary": [
+    "Aufgabe",
+    " Tex",
+    "Daubrecq",
+    "pn-übergang",
+    "Bärlach",
+    "Hungertobel",
+    "Nehle",
+    "RedPanda",
+    "Veden",
+    "Siddharta"
+  ],
+  "showUnsupportedFiles": true,
+  "mobileToolbarCommands": [
+    "editor:toggle-keyboard",
+    "editor:insert-wikilink",
+    "editor:set-heading",
+    "editor:toggle-checklist-status",
+    "editor:toggle-bullet-list",
+    "editor:insert-embed",
+    "editor:insert-tag",
+    "editor:attach-file",
+    "editor:toggle-bold",
+    "editor:toggle-italics",
+    "editor:toggle-strikethrough",
+    "editor:toggle-highlight",
+    "editor:toggle-code",
+    "editor:toggle-blockquote",
+    "editor:insert-link",
+    "editor:toggle-numbered-list",
+    "editor:indent-list",
+    "editor:unindent-list",
+    "editor:undo",
+    "editor:redo",
+    "editor:configure-toolbar"
+  ],
+  "pdfExportSettings": {
+    "includeName": true,
+    "pageSize": "Letter",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  },
+  "alwaysUpdateLinks": true,
+  "propertiesInDocument": "source",
+  "showLineNumber": false,
+  "attachmentFolderPath": "Attachements",
+  "promptDelete": false
+}

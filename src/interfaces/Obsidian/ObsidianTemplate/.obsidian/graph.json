@@ -1,0 +1,100 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": false,
+  "showAttachments": true,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": true,
+  "colorGroups": [
+    {
+      "query": "path:ET22seol/ABU  ",
+      "color": {
+        "a": 1,
+        "rgb": 15128371
+      }
+    },
+    {
+      "query": "path:ET22seol/Französisch  ",
+      "color": {
+        "a": 1,
+        "rgb": 14701138
+      }
+    },
+    {
+      "query": "path:ET22seol/Englisch  ",
+      "color": {
+        "a": 1,
+        "rgb": 15039284
+      }
+    },
+    {
+      "query": "path:ET22seol/Mathematik  ",
+      "color": {
+        "a": 1,
+        "rgb": 5419488
+      }
+    },
+    {
+      "query": "path:\"ET22seol/Hard- und Softwaretechnik\"  ",
+      "color": {
+        "a": 1,
+        "rgb": 14701242
+      }
+    },
+    {
+      "query": "path:ET22seol/Physik  ",
+      "color": {
+        "a": 1,
+        "rgb": 5431380
+      }
+    },
+    {
+      "query": "path:\"ET22seol/Praktische Ausbildung\"  ",
+      "color": {
+        "a": 1,
+        "rgb": 6902496
+      }
+    },
+    {
+      "query": "path:ET22seol/Elektronik  ",
+      "color": {
+        "a": 1,
+        "rgb": 5405920
+      }
+    },
+    {
+      "query": "path:ET22seol/Elektrotechnik  ",
+      "color": {
+        "a": 1,
+        "rgb": 5401056
+      }
+    },
+    {
+      "query": "path:Kalender/Schule/Teste  ",
+      "color": {
+        "a": 1,
+        "rgb": 14701138
+      }
+    },
+    {
+      "query": "path:Wissen/Elektrik  ",
+      "color": {
+        "a": 1,
+        "rgb": 5431387
+      }
+    }
+  ],
+  "collapse-display": true,
+  "showArrow": true,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": false,
+  "centerStrength": 0.0842105263157895,
+  "repelStrength": 10,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 1.2024479055527681,
+  "close": true
+}
