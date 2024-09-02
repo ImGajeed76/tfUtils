@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 console = Console()
 
+
 def copy_directory_recursively(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
     """
     Recursively copy a directory and its contents, designed to work with Windows network paths.
@@ -47,6 +48,7 @@ def copy_directory_recursively(source_dir: Union[str, Path], destination_dir: Un
                 copy_directory_recursively(item, new_dest)
                 pbar.update(1)
 
+
 def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
     """
     A wrapper function that safely calls copy_directory_recursively with error handling.
@@ -57,7 +59,8 @@ def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str
     try:
         copy_directory_recursively(source_dir, destination_dir)
     except PermissionError:
-        console.print(f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_dir} and write to {destination_dir}")
+        console.print(
+            f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_dir} and write to {destination_dir}")
     except FileNotFoundError as e:
         console.print(f"[bold red]Error: {e}")
     except NotADirectoryError as e:
@@ -66,6 +69,7 @@ def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str
         console.print(f"[bold red]Type error: {e}")
     except Exception as e:
         console.print(f"[bold red]An unexpected error occurred: {e}")
+
 
 def get_copied_files(directory: Union[str, Path]) -> List[Path]:
     """
@@ -76,6 +80,7 @@ def get_copied_files(directory: Union[str, Path]) -> List[Path]:
     """
     dir_path = Path(directory)
     return [file for file in dir_path.rglob('*') if file.is_file()]
+
 
 def safe_copy_file(source_file: Union[str, Path], destination: Union[str, Path]) -> None:
     """
@@ -118,7 +123,8 @@ def safe_copy_file(source_file: Union[str, Path], destination: Union[str, Path])
         console.print(f"[green]File copied successfully from {source_path} to {destination_path}")
 
     except PermissionError:
-        console.print(f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_file} and write to {destination}")
+        console.print(
+            f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_file} and write to {destination}")
     except FileNotFoundError as e:
         console.print(f"[bold red]Error: {e}")
     except IsADirectoryError as e:

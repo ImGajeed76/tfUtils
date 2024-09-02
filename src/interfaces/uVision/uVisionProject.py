@@ -86,7 +86,7 @@ def convert_to_clion(objects_folder_name: str, project_root: Optional[Path] = No
         with open(project_root / file.name, 'r', encoding="utf-8") as f:
             content = f.read()
             content = content.replace("$$SOURCE$$", str(source_folder.name))
-            content = content.replace("$$NAME$$", project_name)
+            content = content.replace("$$NAME$$", project_name.replace(" ", "_"))
             content = content.replace("$$OBJECTS$$", objects_folder_name)
         with open(project_root / file.name, 'w', encoding="utf-8") as f:
             f.write(content)
