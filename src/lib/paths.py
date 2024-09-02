@@ -29,8 +29,14 @@ def check_paths() -> bool:
 
                 for key in PATHS.keys():
                     wrong_drive = PATHS[key].drive
-                    correct_path = Path(f"{letter}\\{wrong_drive[0].lower()}_archiv") / str(PATHS[key]).replace(f"{wrong_drive}:", "")
-                    PATHS[key] = correct_path
+                    if wrong_drive == "T:":
+                        PATHS[key] = Path(f"{letter}\\t_lernende") / str(PATHS[key]).split("\\", 1)[1]
+                    elif wrong_drive == "N:":
+                        PATHS[key] = Path(f"{letter}\\n_home-s") / str(PATHS[key]).split("\\", 1)[1]
+                    elif wrong_drive == "S:":
+                        PATHS[key] = Path(f"{letter}\\s_mitarbeiter") / str(PATHS[key]).split("\\", 1)[1]
+                    elif wrong_drive == "U:":
+                        PATHS[key] = Path(f"{letter}\\u_archiv") / str(PATHS[key]).split("\\", 1)[1]
                 console.print(f"Changed paths to {letter}")
 
     for path in PATHS.values():

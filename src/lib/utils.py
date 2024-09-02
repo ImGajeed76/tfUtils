@@ -1,15 +1,15 @@
 import shutil
 from pathlib import Path
 from typing import Union, List
-
 from rich.console import Console
+from tqdm import tqdm
 
 console = Console()
-
 
 def copy_directory_recursively(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
     """
     Recursively copy a directory and its contents, designed to work with Windows network paths.
+    Displays a progress bar for the copy process.
 
     :param source_dir: Path to the source directory
     :param destination_dir: Path to the destination directory
@@ -33,13 +33,19 @@ def copy_directory_recursively(source_dir: Union[str, Path], destination_dir: Un
     # Create the destination directory if it doesn't exist
     destination_path.mkdir(parents=True, exist_ok=True)
 
-    for item in source_path.glob('*'):
-        if item.is_file():
-            shutil.copy2(str(item), str(destination_path / item.name))
-        elif item.is_dir():
-            new_dest = destination_path / item.name
-            copy_directory_recursively(item, new_dest)
+    # Get the list of all items to copy
+    items = list(source_path.glob('*'))
 
+    # Create a progress bar for the overall copy process
+    with tqdm(total=len(items), desc="Copying", unit="item") as pbar:
+        for item in items:
+            if item.is_file():
+                shutil.copy2(str(item), str(destination_path / item.name))
+                pbar.update(1)
+            elif item.is_dir():
+                new_dest = destination_path / item.name
+                copy_directory_recursively(item, new_dest)
+                pbar.update(1)
 
 def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
     """
@@ -51,17 +57,15 @@ def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str
     try:
         copy_directory_recursively(source_dir, destination_dir)
     except PermissionError:
-        print(
-            f"Permission denied. Make sure you have the necessary rights to access {source_dir} and write to {destination_dir}")
+        console.print(f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_dir} and write to {destination_dir}")
     except FileNotFoundError as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error: {e}")
     except NotADirectoryError as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error: {e}")
     except TypeError as e:
-        print(f"Type error: {e}")
+        console.print(f"[bold red]Type error: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
+        console.print(f"[bold red]An unexpected error occurred: {e}")
 
 def get_copied_files(directory: Union[str, Path]) -> List[Path]:
     """
@@ -72,7 +76,6 @@ def get_copied_files(directory: Union[str, Path]) -> List[Path]:
     """
     dir_path = Path(directory)
     return [file for file in dir_path.rglob('*') if file.is_file()]
-
 
 def safe_copy_file(source_file: Union[str, Path], destination: Union[str, Path]) -> None:
     """
@@ -101,16 +104,26 @@ def safe_copy_file(source_file: Union[str, Path], destination: Union[str, Path])
         # Create the destination directory if it doesn't exist
         destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-        shutil.copy2(str(source_path), str(destination_path))
-        print(f"File copied successfully from {source_path} to {destination_path}")
+        # Copy the file with a progress bar
+        file_size = source_path.stat().st_size
+        with tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Copying {source_path.name}") as pbar:
+            with open(source_path, 'rb') as fsrc, open(destination_path, 'wb') as fdst:
+                while True:
+                    buffer = fsrc.read(8192)
+                    if not buffer:
+                        break
+                    fdst.write(buffer)
+                    pbar.update(len(buffer))
+
+        console.print(f"[green]File copied successfully from {source_path} to {destination_path}")
 
     except PermissionError:
-        print(f"Permission denied. Make sure you have the necessary rights to access {source_file} and write to {destination}")
+        console.print(f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_file} and write to {destination}")
     except FileNotFoundError as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error: {e}")
     except IsADirectoryError as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error: {e}")
     except TypeError as e:
-        print(f"Type error: {e}")
+        console.print(f"[bold red]Type error: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        console.print(f"[bold red]An unexpected error occurred: {e}")

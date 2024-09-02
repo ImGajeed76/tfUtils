@@ -102,6 +102,8 @@ def convert_to_clion(objects_folder_name: str, project_root: Optional[Path] = No
 
 @interface("Neue uVision Projekt")
 def create_new_project():
+    console.print("uVision Templates werden geladen...")
+
     template_paths = get_all_uv_templates()
 
     # sort the templates by path
