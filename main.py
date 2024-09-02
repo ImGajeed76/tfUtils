@@ -15,6 +15,7 @@ MAIN_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 INTERFACES_BASE_PATH = MAIN_DIR / "src" / "interfaces"
 sys.path.insert(0, str(MAIN_DIR))
 
+
 def scan_for_interface_functions(module_name: str) -> List[Dict[str, any]]:
     try:
         module = importlib.import_module(module_name)
@@ -27,6 +28,7 @@ def scan_for_interface_functions(module_name: str) -> List[Dict[str, any]]:
         return interface_functions
     except Exception:
         return []
+
 
 def scan_directory(base_path: Path) -> Dict[str, List[Dict[str, any]]]:
     tree = {}
@@ -42,6 +44,7 @@ def scan_directory(base_path: Path) -> Dict[str, List[Dict[str, any]]]:
                 tree[folder_path] = []
             tree[folder_path].extend(interface_funcs)
     return tree
+
 
 def select_function(tree: Dict[str, List[Dict[str, any]]]) -> Union[Callable, None]:
     current_path = ''
@@ -88,6 +91,7 @@ def select_function(tree: Dict[str, List[Dict[str, any]]]) -> Union[Callable, No
         else:
             print("Invalid selection")
             return None
+
 
 if __name__ == "__main__":
     console.clear()

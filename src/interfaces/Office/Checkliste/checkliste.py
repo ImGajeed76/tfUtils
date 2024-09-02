@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.lib.interface import interface
-from src.lib.paths import CHECKLIST_TEMPLATES_PATH
+from src.lib.paths import PATHS
 from src.lib.utils import console, safe_copy_file
 
 
@@ -16,7 +16,7 @@ def create_pcb_checklist():
 
 
 def _copy_checklist(pattern: str):
-    checklist_files = list(CHECKLIST_TEMPLATES_PATH.glob(pattern))
+    checklist_files = list(PATHS["CHECKLIST_TEMPLATES_PATH"].glob(pattern))
     checklist_files.sort()
 
     if len(checklist_files) == 0:

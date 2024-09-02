@@ -7,14 +7,14 @@ from rich.prompt import Prompt
 
 from src.lib.console import ask_select, ask_input, ask_yes_no
 from src.lib.interface import interface
-from src.lib.paths import ALTIUM_TEMPLATES_PATH
+from src.lib.paths import PATHS
 from src.lib.utils import safe_copy_directory, console
 
 
 def get_all_schema_layout_templates():
     template_dirs = []
 
-    for path in ALTIUM_TEMPLATES_PATH.rglob('*'):
+    for path in PATHS["ALTIUM_TEMPLATES_PATH"].rglob('*'):
         if path.is_dir():
             if any(file.suffix in ('.PRJPCB') for file in path.iterdir()):
                 template_dirs.append(path)
@@ -32,7 +32,7 @@ def new_altium_project(default_name=None, create_new_dir=None):
     # sort the templates by path
     template_paths.sort()
 
-    template_names = [str(path.relative_to(ALTIUM_TEMPLATES_PATH)) for path in template_paths]
+    template_names = [str(path.relative_to(PATHS["ALTIUM_TEMPLATES_PATH"])) for path in template_paths]
 
     template_index = ask_select("Select an Altium Template", choices=template_names)
     template_path = template_paths[template_index]

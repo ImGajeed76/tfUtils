@@ -3,13 +3,13 @@ import zipfile
 from pathlib import Path
 
 from src.lib.interface import interface
-from src.lib.paths import OFFICE_PATH
+from src.lib.paths import PATHS
 from src.lib.utils import console, safe_copy_file
 
 
 @interface("Systembeschreibung erstellen")
 def create_new_system_description():
-    sys_files = list(OFFICE_PATH.glob("Systembeschreibung_Vorlage_v*.dotx"))
+    sys_files = list(PATHS["OFFICE_PATH"].glob("Systembeschreibung_Vorlage_v*.dotx"))
     sys_files.sort()
 
     if len(sys_files) == 0:

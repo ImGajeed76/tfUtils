@@ -7,14 +7,14 @@ from rich.prompt import Prompt
 
 from src.lib.console import ask_select, ask_yes_no, ask_input
 from src.lib.interface import interface
-from src.lib.paths import U_VISION_TEMPLATES_PATH
+from src.lib.paths import PATHS
 from src.lib.utils import console, safe_copy_directory
 
 
 def get_all_uv_templates():
     template_dirs = []
 
-    for path in U_VISION_TEMPLATES_PATH.rglob('*'):
+    for path in PATHS["U_VISION_TEMPLATES_PATH"].rglob('*'):
         if path.is_dir():
             if any(file.suffix in ('.uvproj', '.uvprojx') for file in path.iterdir()):
                 template_dirs.append(path)
@@ -107,7 +107,7 @@ def create_new_project():
     # sort the templates by path
     template_paths.sort()
 
-    template_names = [str(path.relative_to(U_VISION_TEMPLATES_PATH)) for path in template_paths]
+    template_names = [str(path.relative_to(PATHS["U_VISION_TEMPLATES_PATH"])) for path in template_paths]
 
     template_index = ask_select("Wähle eine uVision Vorlage", template_names)
     template_path = template_paths[template_index]

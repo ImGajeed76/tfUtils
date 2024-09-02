@@ -7,7 +7,7 @@ from src.lib.utils import console, safe_copy_directory
 
 @interface("Neuen Obsidian Vault erstellen")
 def create_new_obsidian_vault():
-    vault_name = ask_input("Vault Name","Wie soll dein neuer Vault heißen?")
+    vault_name = ask_input("Vault Name", "Wie soll dein neuer Vault heißen?")
 
     # create the vault directory
     base_dir = Path().cwd()

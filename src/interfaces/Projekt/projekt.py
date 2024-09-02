@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.lib.console import ask_input, ask_yes_no
 from src.lib.interface import interface
-from src.lib.paths import DEFAULT_STRUCT_FOLDER
+from src.lib.paths import PATHS
 from src.lib.utils import console, safe_copy_directory
 
 
@@ -28,7 +28,7 @@ def create_new_project_structure():
 
     project_dir.mkdir()
 
-    safe_copy_directory(DEFAULT_STRUCT_FOLDER, project_dir)
+    safe_copy_directory(PATHS["DEFAULT_STRUCT_FOLDER"], project_dir)
 
     console.print(f"[green]Projekt erfolgreich erstellt![/green]")
 
