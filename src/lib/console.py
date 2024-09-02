@@ -118,7 +118,7 @@ def ask_input(question: str, description: str, placeholder: str = "", regex: str
         if blink_state:
             sys.stdout.write("█")
         else:
-            if len(user_input) == 0:
+            if len(user_input) == 0 and placeholder:
                 # print first character of placeholder in bright black
                 # use console color codes for color
                 sys.stdout.write(f"\033[90m{placeholder[0]}\033[97m")
