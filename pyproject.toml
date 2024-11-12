@@ -13,3 +13,26 @@ line-length = 88
 select = ["E", "F", "I", "N", "B", "UP"]
 ignore = ["B008"]
 target-version = "py38"
+
+[tool.poetry]
+name = "tfutils"
+version = "1.0.0"
+description = "A simple and extendible cli for managing files at the TFBern"
+authors = ["imgajeed <github.staging362@passmail.net>"]
+license = "GPL-3.0"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+rich = "^13.9.4"
+tqdm = "^4.67.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.0.1"
+pyinstaller = "^6.11.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
