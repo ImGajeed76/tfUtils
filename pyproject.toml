@@ -27,6 +27,7 @@ package-mode = false
 python = ">=3.10,<3.13"
 rich = "^13.9.4"
 tqdm = "^4.67.0"
+requests = "^2.32.3"
 
 
 [tool.poetry.group.dev.dependencies]
