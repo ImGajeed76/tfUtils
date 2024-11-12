@@ -22,7 +22,7 @@ def create_new_system_description():
     new_file = current_dir / "Systembeschreibung.dotx"
     safe_copy_file(file, new_file)
 
-    console.print(f"[green]Systembeschreibung file copied successfully![/green]")
+    console.print("[green]Systembeschreibung file copied successfully![/green]")
 
 
 def systembeschreibung_exists() -> bool:
@@ -47,9 +47,9 @@ def export_system_description_images():
     target_dir = Path.cwd() / "Bilder"
     target_dir.mkdir(exist_ok=True)
 
-    with zipfile.ZipFile(docx, 'r') as docx_zip:
+    with zipfile.ZipFile(docx, "r") as docx_zip:
         # Filter for files in the word/media directory
-        media_files = [f for f in docx_zip.namelist() if f.startswith('word/media/')]
+        media_files = [f for f in docx_zip.namelist() if f.startswith("word/media/")]
 
         # Extract each media file
         for media_file in media_files:
@@ -60,7 +60,7 @@ def export_system_description_images():
             filename = Path(media_file).name
 
             # Move the file from the temporary nested folder to the output folder
-            src = target_dir / 'word' / 'media' / filename
+            src = target_dir / "word" / "media" / filename
             dst = target_dir / filename
 
             # If the destination file already exists, remove it
@@ -70,7 +70,7 @@ def export_system_description_images():
             shutil.move(str(src), str(dst))
 
     # Clean up the temporary nested folders
-    temp_word_folder = target_dir / 'word'
+    temp_word_folder = target_dir / "word"
     if temp_word_folder.exists():
         shutil.rmtree(temp_word_folder)
 

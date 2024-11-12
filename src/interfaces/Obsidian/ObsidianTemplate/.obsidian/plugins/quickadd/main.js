@@ -9661,7 +9661,7 @@ async function getUserScript(command, app2) {
     const mod = { exports: exp };
     const fileContent = await app2.vault.read(file);
     const fn2 = window.eval(
-      `(function(require, module, exports) { ${fileContent} 
+      `(function(require, module, exports) { ${fileContent}
 })`
     );
     fn2(req, mod, exp);
@@ -13511,7 +13511,7 @@ var TemplateEngine = class extends QuickAddEngine {
       return createdFile;
     } catch (e) {
       log.logError(
-        `Could not create file with template: 
+        `Could not create file with template:
 
 ${e.message}`
       );
@@ -19170,7 +19170,7 @@ async function migrate(plugin) {
       log.logMessage(`Migration ${migration} successful.`);
     } catch (error) {
       log.logError(
-        `Migration '${migration}' was unsuccessful. Please create an issue with the following error message: 
+        `Migration '${migration}' was unsuccessful. Please create an issue with the following error message:
 
 ${error}
 

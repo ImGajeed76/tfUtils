@@ -30694,7 +30694,7 @@ var OZCalendarPluginSettingsTab = class extends import_obsidian6.PluginSettingTa
     if (this.plugin.settings.dateSource === "filename")
       yamlKeySetting.setClass("oz-calendar-custom-hidden");
     new import_obsidian6.Setting(containerEl).setName("Date Format").setDesc(
-      `Set the Date format you are using within the YAML key or File Name provided above. 
+      `Set the Date format you are using within the YAML key or File Name provided above.
                 If you are using File Name, make sure that you dont have any special characters since Obsidian doesnt
                 support special characters in the file name like colon. Reload the plugin using the following button
                 in case you change this value`
@@ -30713,7 +30713,7 @@ var OZCalendarPluginSettingsTab = class extends import_obsidian6.PluginSettingTa
     containerEl.createEl("h2", { text: "New Note Settings" });
     containerEl.createEl("p", {
       text: `
-                The plugin will add the YAML key and date to the newly created note using the date format provided above 
+                The plugin will add the YAML key and date to the newly created note using the date format provided above
                 if Date Source is YAML. However, auto YAML key generation for the notes is going to be disabled if you use
                 File Name as date source.
             `,
@@ -30747,7 +30747,7 @@ var OZCalendarPluginSettingsTab = class extends import_obsidian6.PluginSettingTa
     });
     new import_obsidian6.Setting(containerEl).setName("Show Destination Folder During File Creation").setDesc(
       `
-                Disable this if you dont want to see the destination folder selection during 
+                Disable this if you dont want to see the destination folder selection during
                 the file creation process. The value is always going to be defaulted to the
                 selected Default Folder above. You can change the destination folder for each
                 folder separately but the default value will always stay same.
@@ -30760,9 +30760,9 @@ var OZCalendarPluginSettingsTab = class extends import_obsidian6.PluginSettingTa
     });
     new import_obsidian6.Setting(containerEl).setName("Allow to provide slash during the file creation").setDesc(
       `
-                Enable this option if you want to allow file creation modal to allow slash (/) in the filename, which will help creating a folder. 
-                i.e. if this option is enabled and you provide an input like Folder1/File1, this will create Folder1 and place File1 under it. If 
-                the folder exists, the file will be placed under the existing folder. This will respect the default folder location and create the 
+                Enable this option if you want to allow file creation modal to allow slash (/) in the filename, which will help creating a folder.
+                i.e. if this option is enabled and you provide an input like Folder1/File1, this will create Folder1 and place File1 under it. If
+                the folder exists, the file will be placed under the existing folder. This will respect the default folder location and create the
                 new folder as a subfolder under the default one.
                 `
     ).addToggle((toggle) => {

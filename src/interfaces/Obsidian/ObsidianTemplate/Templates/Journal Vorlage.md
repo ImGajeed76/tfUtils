@@ -1,11 +1,11 @@
 # ToDo
 
-- [ ] 
+- [ ]
 
 
 # Arbeitsraport
 
-| Tätigkeit | Von | Bis | Total | 
+| Tätigkeit | Von | Bis | Total |
 | --------- | --- | --- | ----- |
 |           |     |     |       |
 
@@ -15,4 +15,3 @@
 
 
 # Reflektion
-

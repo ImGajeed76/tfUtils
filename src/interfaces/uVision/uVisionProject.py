@@ -3,9 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from rich.prompt import Prompt
-
-from src.lib.console import ask_select, ask_yes_no, ask_input
+from src.lib.console import ask_input, ask_select, ask_yes_no
 from src.lib.interface import interface
 from src.lib.paths import PATHS
 from src.lib.utils import console, safe_copy_directory
@@ -14,9 +12,9 @@ from src.lib.utils import console, safe_copy_directory
 def get_all_uv_templates():
     template_dirs = []
 
-    for path in PATHS["U_VISION_TEMPLATES_PATH"].rglob('*'):
+    for path in PATHS["U_VISION_TEMPLATES_PATH"].rglob("*"):
         if path.is_dir():
-            if any(file.suffix in ('.uvproj', '.uvprojx') for file in path.iterdir()):
+            if any(file.suffix in (".uvproj", ".uvprojx") for file in path.iterdir()):
                 template_dirs.append(path)
 
     return template_dirs
@@ -25,35 +23,37 @@ def get_all_uv_templates():
 def clean_directory(directory: Path) -> None:
     """Remove .bak files and Listing/Object directories."""
     # Remove .bak files
-    for bak_file in directory.rglob('*.bak'):
+    for bak_file in directory.rglob("*.bak"):
         bak_file.unlink()
 
     # Remove Listing and Object directories
-    for dir_name in ['Listing']:
+    for dir_name in ["Listing"]:
         dir_path = directory / dir_name
         if dir_path.exists():
             shutil.rmtree(dir_path)
 
     # Remove files ending with .uvgui.*
-    for file in directory.rglob('*.uvgui*'):
+    for file in directory.rglob("*.uvgui*"):
         file.unlink()
 
 
 def rename_uv_files(directory: Path, new_name: str) -> None:
     """Rename only .uvopt, .uvproj, .uvoptx, and .uvprojx files in the directory."""
-    for file_path in directory.glob('*'):
-        if file_path.suffix.lower() in ['.uvopt', '.uvproj', '.uvoptx', '.uvprojx']:
+    for file_path in directory.glob("*"):
+        if file_path.suffix.lower() in [".uvopt", ".uvproj", ".uvoptx", ".uvprojx"]:
             new_filename = f"{new_name}{file_path.suffix}"
             file_path.rename(file_path.parent / new_filename)
 
 
 def remove_bat_scripts(directory: Path) -> None:
     """Remove all .bat files from the directory."""
-    for bat_file in directory.rglob('*.bat'):
+    for bat_file in directory.rglob("*.bat"):
         bat_file.unlink()
 
 
-def convert_to_clion(objects_folder_name: str, project_root: Optional[Path] = None) -> None:
+def convert_to_clion(
+    objects_folder_name: str, project_root: Optional[Path] = None
+) -> None:
     """Convert uVision project to CLion project."""
     if project_root is None:
         project_root = Path.cwd()
@@ -71,7 +71,8 @@ def convert_to_clion(objects_folder_name: str, project_root: Optional[Path] = No
     idea_folder.mkdir(exist_ok=True)
 
     source_folder = project_root / "Source"
-    # if the Source folder doesn't exist, find it in the project root by looking for the main.c file
+    # if the Source folder doesn't exist,
+    # find it in the project root by looking for the main.c file
     if not source_folder.exists():
         main_c_files = list(project_root.rglob("main.c"))
         if main_c_files:
@@ -83,18 +84,20 @@ def convert_to_clion(objects_folder_name: str, project_root: Optional[Path] = No
     for file in [cmake_file, flash_bat, clang_format]:
         shutil.copy2(file, project_root)
         # rename $$SOURCE$$, $$NAME$$, $$OBJECTS$$
-        with open(project_root / file.name, 'r', encoding="utf-8") as f:
+        with open(project_root / file.name, encoding="utf-8") as f:
             content = f.read()
             content = content.replace("$$SOURCE$$", str(source_folder.name))
             content = content.replace("$$NAME$$", project_name.replace(" ", "_"))
             content = content.replace("$$OBJECTS$$", objects_folder_name)
-        with open(project_root / file.name, 'w', encoding="utf-8") as f:
+        with open(project_root / file.name, "w", encoding="utf-8") as f:
             f.write(content)
 
     # Handle workspace.xml
     workspace_xml_path = idea_folder / "workspace.xml"
     if workspace_xml_path.exists():
-        with open(workspace_config_file, 'r') as config_file, open(workspace_xml_path, 'a') as workspace_file:
+        with open(workspace_config_file) as config_file, open(
+            workspace_xml_path, "a"
+        ) as workspace_file:
             workspace_file.write(config_file.read())
     else:
         shutil.copy2(workspace_config_file, workspace_xml_path)
@@ -109,15 +112,27 @@ def create_new_project():
     # sort the templates by path
     template_paths.sort()
 
-    template_names = [str(path.relative_to(PATHS["U_VISION_TEMPLATES_PATH"])) for path in template_paths]
+    template_names = [
+        str(path.relative_to(PATHS["U_VISION_TEMPLATES_PATH"]))
+        for path in template_paths
+    ]
 
     template_index = ask_select("Wähle eine uVision Vorlage", template_names)
     template_path = template_paths[template_index]
 
     suggested_name = Path(os.getcwd()).name
-    project_name = ask_input("Projekt Name", description="Wie möchtest du dein uVision Projekt nennen?", placeholder=suggested_name)
+    project_name = ask_input(
+        "Projekt Name",
+        description="Wie möchtest du dein uVision Projekt nennen?",
+        placeholder=suggested_name,
+    )
 
-    use_new = ask_yes_no("Neuen Ordner erstellen?", f"Möchtest du einen neuen Ordner mit dem namen '{project_name}' in diesem Ordner erstellen?\nDer neue Pfad währe dann: ./{Path.cwd().name}/{project_name}")
+    use_new = ask_yes_no(
+        "Neuen Ordner erstellen?",
+        f"Möchtest du einen neuen Ordner mit dem namen "
+        f"'{project_name}' in diesem Ordner erstellen?\n"
+        f"Der neue Pfad währe dann: ./{Path.cwd().name}/{project_name}",
+    )
 
     if use_new:
         new_dir_path = Path.cwd() / project_name
@@ -132,7 +147,12 @@ def create_new_project():
     clean_directory(new_dir_path)
 
     # Ask for version (pattern: vX.Y)
-    version = ask_input("Version", description="Bitte gebe die Versionsnummer ein (VX.Y)", regex=r"V\d+\.\d+", placeholder="V1.0")
+    version = ask_input(
+        "Version",
+        description="Bitte gebe die Versionsnummer ein (VX.Y)",
+        regex=r"V\d+\.\d+",
+        placeholder="V1.0",
+    )
 
     # Rename uVision files
     new_name = f"{project_name}_{version}"
@@ -141,10 +161,15 @@ def create_new_project():
     # Remove .bat scripts
     remove_bat_scripts(new_dir_path)
 
-    console.print(f"[green]Successfully[/green] copied template to [yellow]{new_dir_path}[/yellow]")
+    console.print(
+        f"[green]Successfully[/green] copied template to "
+        f"[yellow]{new_dir_path}[/yellow]"
+    )
 
     # Ask if the user wants to modify the project for CLion
-    modify_clion = ask_yes_no("Projekt für CLion anpassen?", "Möchtest du das Projekt für CLion anpassen?")
+    modify_clion = ask_yes_no(
+        "Projekt für CLion anpassen?", "Möchtest du das Projekt für CLion anpassen?"
+    )
     if modify_clion:
         os.chdir(new_dir_path)
         convert_to_clion_wrapper()
@@ -158,11 +183,11 @@ def in_u_vision_project() -> bool:
 @interface("zu CLion Projekt konvertieren", in_u_vision_project())
 def convert_to_clion_wrapper():
     current_dir = Path.cwd()
-    objects_folder_name = 'Object'
-    for name in ['Objects', 'Object', 'objects', 'object']:
+    objects_folder_name = "Object"
+    for name in ["Objects", "Object", "objects", "object"]:
         if (current_dir / name).exists():
             objects_folder_name = name
             break
 
     convert_to_clion(objects_folder_name, current_dir)
-    console.print(f"[green]Successfully[/green] modified project for CLion")
+    console.print("[green]Successfully[/green] modified project for CLion")

@@ -285,14 +285,14 @@
 }
 
 .codeblock-customizer.codeblock-customizer-style-codeblock-border-right .markdown-source-view .HyperMD-codeblock[class*="codeblock-customizer-line"][class*=codeblock-customizer-language-][class*="hasLangBorderColor"],
-.codeblock-customizer.codeblock-customizer-style-codeblock-border-right .markdown-source-view .codeblock-customizer-header-container[class*=codeblock-customizer-language-][class*="hasLangBorderColor"], 
+.codeblock-customizer.codeblock-customizer-style-codeblock-border-right .markdown-source-view .codeblock-customizer-header-container[class*=codeblock-customizer-language-][class*="hasLangBorderColor"],
 .codeblock-customizer.codeblock-customizer-style-codeblock-border-right .markdown-source-view .codeblock-customizer-header-container-specific[class*=codeblock-customizer-language-][class*="hasLangBorderColor"],
 .codeblock-customizer.codeblock-customizer-style-codeblock-border-right .markdown-rendered pre.codeblock-customizer-pre[class*=codeblock-customizer-language-][class*="hasLangBorderColor"] {
   border-right-color: var(--border-color);
   border-right-width: 5px;
   border-right-style: solid;
 }
-.codeblock-customizer-header-container, 
+.codeblock-customizer-header-container,
 .codeblock-customizer-header-container-specific {
   padding-bottom: 2px;
   background: linear-gradient(var(--codeblock-customizer-header-line-color), var(--codeblock-customizer-header-line-color)) bottom / 100% 2px no-repeat;
@@ -301,8 +301,8 @@
 }
 
 /* remove top left and bottom left radius if language tag is displayed but icon is not */
-body.codeblock-customizer-style-codeblock-border-left:not([class*="codeblock-customizer-show-langicons"]) .codeblock-customizer-header-container-specific [class^="codeblock-customizer-header-language-tag"], 
-body.codeblock-customizer-style-codeblock-border-left:not(.codeblock-customizer-show-langicons-always) .codeblock-customizer-header-container [class^="codeblock-customizer-header-language-tag"], 
+body.codeblock-customizer-style-codeblock-border-left:not([class*="codeblock-customizer-show-langicons"]) .codeblock-customizer-header-container-specific [class^="codeblock-customizer-header-language-tag"],
+body.codeblock-customizer-style-codeblock-border-left:not(.codeblock-customizer-show-langicons-always) .codeblock-customizer-header-container [class^="codeblock-customizer-header-language-tag"],
 body.codeblock-customizer-style-codeblock-border-left .codeblock-customizer-header-container-specific:not(:has(div > img.codeblock-customizer-icon)) [class^="codeblock-customizer-header-language-tag"] {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
@@ -333,7 +333,7 @@ body.codeblock-customizer-style-codeblock-border-left .codeblock-customizer-head
 .markdown-rendered .codeblock-customizer-pre > code > .codeblock-customizer-lines-below-collapsed > .codeblock-customizer-line-number,
 .markdown-rendered .codeblock-customizer-pre > code > .codeblock-customizer-lines-below-collapsed > .codeblock-customizer-line-number-specific { /* Maintain gutter color when padded */
   /*box-shadow: 0px calc(-1 * var(--code-padding)) var(--codeblock-customizer-gutter-background-color);*/
-  box-shadow: 
+  box-shadow:
   0px var(--code-padding) var(--codeblock-customizer-gutter-background-color),
   0px calc(-1 * var(--code-padding)) var(--codeblock-customizer-gutter-background-color);
 }
@@ -482,7 +482,7 @@ body:not(.codeblock-customizer-header-collapse-command) .codeblock-customizer-he
 .codeblock-customizer-show-copy-code-button .markdown-source-view.mod-cm6 .codeblock-customizer-line .code-block-flair {
   display: none !important;
 }
-/* copy code button styling (reading view) */ 
+/* copy code button styling (reading view) */
 .markdown-rendered button.codeblock-customizer-copy-code-button {
   margin: 6px;
   padding: 6px 8px;
@@ -543,7 +543,7 @@ body:not(.codeblock-customizer-header-collapse-command) .codeblock-customizer-he
 }
 .codeblock-customizer-collapseIconMiddle .codeblock-customizer-header-collapse {
   /* display the collapse icon centered */
-  left: 50%;  
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 .codeblock-customizer-collapseIconNone .codeblock-customizer-header-collapse {

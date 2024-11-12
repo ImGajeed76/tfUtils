@@ -14,7 +14,7 @@ def create_new_obsidian_vault():
     vault_dir = base_dir / vault_name
 
     if vault_dir.exists():
-        console.print(f"[red]Vault directory already exists![/red]")
+        console.print("[red]Vault directory already exists![/red]")
         return
 
     vault_dir.mkdir()
@@ -25,4 +25,4 @@ def create_new_obsidian_vault():
 
     safe_copy_directory(obsidian_template_dir, vault_dir)
 
-    console.print(f"[green]Vault created successfully![/green]")
+    console.print("[green]Vault created successfully![/green]")

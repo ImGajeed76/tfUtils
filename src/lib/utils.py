@@ -1,135 +1,296 @@
-import shutil
+"""File system utilities for safely copying files and directories with progress bar.
+
+This module provides utilities for copying files and
+directories with proper error handling, progress tracking,
+and support for Windows network paths.
+"""
+
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, List
+from typing import List, Optional, Protocol, Union
+
 from rich.console import Console
 from tqdm import tqdm
+
+PathLike = Union[str, Path]
 
 console = Console()
 
 
-def copy_directory_recursively(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
-    """
-    Recursively copy a directory and its contents, designed to work with Windows network paths.
-    Displays a progress bar for the copy process.
+class FileSystemError(Exception):
+    """Base exception for file system operations."""
 
-    :param source_dir: Path to the source directory
-    :param destination_dir: Path to the destination directory
-    :raises TypeError: If inputs are not str or Path
-    :raises FileNotFoundError: If source_dir doesn't exist
-    :raises NotADirectoryError: If source_dir is not a directory
-    """
-    # Convert to Path objects and validate inputs
-    source_path = Path(source_dir)
-    destination_path = Path(destination_dir)
-
-    if not isinstance(source_dir, (str, Path)) or not isinstance(destination_dir, (str, Path)):
-        raise TypeError("Both source_dir and destination_dir must be either str or Path objects")
-
-    if not source_path.exists():
-        raise FileNotFoundError(f"Source directory {source_path} does not exist")
-
-    if not source_path.is_dir():
-        raise NotADirectoryError(f"Source {source_path} is not a directory")
-
-    # Create the destination directory if it doesn't exist
-    destination_path.mkdir(parents=True, exist_ok=True)
-
-    # Get the list of all items to copy
-    items = list(source_path.glob('*'))
-
-    # Create a progress bar for the overall copy process
-    with tqdm(total=len(items), desc="Copying", unit="item") as pbar:
-        for item in items:
-            if item.is_file():
-                shutil.copy2(str(item), str(destination_path / item.name))
-                pbar.update(1)
-            elif item.is_dir():
-                new_dest = destination_path / item.name
-                copy_directory_recursively(item, new_dest)
-                pbar.update(1)
+    pass
 
 
-def safe_copy_directory(source_dir: Union[str, Path], destination_dir: Union[str, Path]) -> None:
-    """
-    A wrapper function that safely calls copy_directory_recursively with error handling.
+class CopyError(FileSystemError):
+    """Exception raised when a copy operation fails."""
 
-    :param source_dir: Path to the source directory
-    :param destination_dir: Path to the destination directory
-    """
-    try:
-        copy_directory_recursively(source_dir, destination_dir)
-    except PermissionError:
-        console.print(
-            f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_dir} and write to {destination_dir}")
-    except FileNotFoundError as e:
-        console.print(f"[bold red]Error: {e}")
-    except NotADirectoryError as e:
-        console.print(f"[bold red]Error: {e}")
-    except TypeError as e:
-        console.print(f"[bold red]Type error: {e}")
-    except Exception as e:
-        console.print(f"[bold red]An unexpected error occurred: {e}")
+    pass
 
 
-def get_copied_files(directory: Union[str, Path]) -> List[Path]:
-    """
-    Get a list of all files in the given directory and its subdirectories.
+class ValidationError(FileSystemError):
+    """Exception raised when input validation fails."""
 
-    :param directory: Path to the directory
-    :return: List of Path objects representing files
-    """
-    dir_path = Path(directory)
-    return [file for file in dir_path.rglob('*') if file.is_file()]
+    pass
 
 
-def safe_copy_file(source_file: Union[str, Path], destination: Union[str, Path]) -> None:
-    """
-    Safely copy a file from source to destination with error handling.
+@dataclass
+class CopyStats:
+    """Statistics for copy operations."""
 
-    :param source_file: Path to the source file
-    :param destination: Path to either the destination directory or the full destination file path
-    """
-    try:
-        source_path = Path(source_file)
-        destination_path = Path(destination)
+    total_files: int = 0
+    total_dirs: int = 0
+    total_bytes: int = 0
+    failed_operations: List[str] = None
 
-        if not isinstance(source_file, (str, Path)) or not isinstance(destination, (str, Path)):
-            raise TypeError("Both source_file and destination must be either str or Path objects")
+    def __post_init__(self):
+        self.failed_operations = self.failed_operations or []
 
-        if not source_path.exists():
-            raise FileNotFoundError(f"Source file {source_path} does not exist")
 
-        if not source_path.is_file():
-            raise IsADirectoryError(f"Source {source_path} is not a file")
+class ProgressCallback(Protocol):
+    """Protocol for progress callback functions."""
 
-        # If destination is a directory, use the original filename
-        if destination_path.is_dir():
-            destination_path = destination_path / source_path.name
+    def __call__(self, current: int, total: int, description: str) -> None:
+        """Update progress information."""
+        ...
 
-        # Create the destination directory if it doesn't exist
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Copy the file with a progress bar
-        file_size = source_path.stat().st_size
-        with tqdm(total=file_size, unit='B', unit_scale=True, desc=f"Copying {source_path.name}") as pbar:
-            with open(source_path, 'rb') as fsrc, open(destination_path, 'wb') as fdst:
-                while True:
-                    buffer = fsrc.read(8192)
-                    if not buffer:
-                        break
-                    fdst.write(buffer)
-                    pbar.update(len(buffer))
+class PathValidator:
+    """Utility class for validating file system paths."""
 
-        console.print(f"[green]File copied successfully from {source_path} to {destination_path}")
+    @staticmethod
+    def validate_path_type(path: PathLike, name: str) -> None:
+        """Validate that a path is of the correct type."""
+        if not isinstance(path, (str, Path)):
+            raise ValidationError(f"{name} must be either str or Path object")
 
-    except PermissionError:
-        console.print(
-            f"[bold red]Permission denied. Make sure you have the necessary rights to access {source_file} and write to {destination}")
-    except FileNotFoundError as e:
-        console.print(f"[bold red]Error: {e}")
-    except IsADirectoryError as e:
-        console.print(f"[bold red]Error: {e}")
-    except TypeError as e:
-        console.print(f"[bold red]Type error: {e}")
-    except Exception as e:
-        console.print(f"[bold red]An unexpected error occurred: {e}")
+    @staticmethod
+    def validate_source_exists(path: Path) -> None:
+        """Validate that a source path exists."""
+        if not path.exists():
+            raise FileNotFoundError(f"Source {path} does not exist")
+
+    @staticmethod
+    def validate_is_directory(path: Path) -> None:
+        """Validate that a path is a directory."""
+        if not path.is_dir():
+            raise NotADirectoryError(f"Path {path} is not a directory")
+
+    @staticmethod
+    def validate_is_file(path: Path) -> None:
+        """Validate that a path is a file."""
+        if not path.is_file():
+            raise IsADirectoryError(f"Path {path} is not a file")
+
+
+class ProgressTracker:
+    """Handles progress tracking for file operations."""
+
+    def __init__(self, console: Console):
+        self.console = console
+
+    def create_progress_bar(
+        self, total: int, description: str, unit: str = "B", unit_scale: bool = True
+    ) -> tqdm:
+        """Create a progress bar for tracking operations."""
+        return tqdm(total=total, desc=description, unit=unit, unit_scale=unit_scale)
+
+    def update_progress(self, pbar: tqdm, amount: int) -> None:
+        """Update the progress bar."""
+        pbar.update(amount)
+
+
+class FileCopier:
+    """Handles file copy operations with progress tracking."""
+
+    def __init__(self, console: Console):
+        self.console = console
+        self.validator = PathValidator()
+        self.progress = ProgressTracker(console)
+
+    def copy_file(
+        self, source: PathLike, destination: PathLike, buffer_size: int = 8192
+    ) -> None:
+        """Copy a single file with progress tracking.
+
+        Args:
+            source: Source file path
+            destination: Destination path (file or directory)
+            buffer_size: Size of the buffer for copying
+
+        Raises:
+            CopyError: If the copy operation fails
+        """
+        source_path = Path(source)
+        dest_path = Path(destination)
+
+        try:
+            # Validate inputs
+            self.validator.validate_path_type(source, "source")
+            self.validator.validate_path_type(destination, "destination")
+            self.validator.validate_source_exists(source_path)
+            self.validator.validate_is_file(source_path)
+
+            # Handle destination path
+            if dest_path.is_dir():
+                dest_path = dest_path / source_path.name
+
+            # Ensure destination directory exists
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Copy with progress tracking
+            file_size = source_path.stat().st_size
+            with self.progress.create_progress_bar(
+                file_size, f"Copying {source_path.name}"
+            ) as pbar:
+                with open(source_path, "rb") as fsrc, open(dest_path, "wb") as fdst:
+                    while True:
+                        buffer = fsrc.read(buffer_size)
+                        if not buffer:
+                            break
+                        fdst.write(buffer)
+                        self.progress.update_progress(pbar, len(buffer))
+
+            self.console.print(
+                f"[green]Successfully copied {source_path} to {dest_path}"
+            )
+
+        except Exception as e:
+            raise CopyError(f"Failed to copy {source_path}: {str(e)}") from e
+
+
+class DirectoryCopier:
+    """Handles directory copy operations with progress tracking."""
+
+    def __init__(self, console: Console):
+        self.console = console
+        self.validator = PathValidator()
+        self.progress = ProgressTracker(console)
+        self.file_copier = FileCopier(console)
+
+    def copy_directory(
+        self, source: PathLike, destination: PathLike, stats: Optional[CopyStats] = None
+    ) -> CopyStats:
+        """Recursively copy a directory with progress tracking.
+
+        Args:
+            source: Source directory path
+            destination: Destination directory path
+            stats: Optional statistics object for tracking copy operations
+
+        Returns:
+            CopyStats object with copy operation statistics
+
+        Raises:
+            CopyError: If the copy operation fails
+        """
+        source_path = Path(source)
+        dest_path = Path(destination)
+        stats = stats or CopyStats()
+
+        try:
+            # Validate inputs
+            self.validator.validate_path_type(source, "source")
+            self.validator.validate_path_type(destination, "destination")
+            self.validator.validate_source_exists(source_path)
+            self.validator.validate_is_directory(source_path)
+
+            # Create destination directory
+            dest_path.mkdir(parents=True, exist_ok=True)
+            stats.total_dirs += 1
+
+            # Get items to copy
+            items = list(source_path.glob("*"))
+
+            with self.progress.create_progress_bar(
+                len(items), "Copying", unit="item", unit_scale=False
+            ) as pbar:
+                for item in items:
+                    try:
+                        if item.is_file():
+                            self.file_copier.copy_file(item, dest_path)
+                            stats.total_files += 1
+                            stats.total_bytes += item.stat().st_size
+                        elif item.is_dir():
+                            new_dest = dest_path / item.name
+                            self.copy_directory(item, new_dest, stats)
+                        pbar.update(1)
+                    except Exception as e:
+                        stats.failed_operations.append(f"{item}: {str(e)}")
+
+            return stats
+
+        except Exception as e:
+            raise CopyError(f"Failed to copy directory {source_path}: {str(e)}") from e
+
+
+class FileSystemOperations:
+    """High-level interface for file system operations."""
+
+    def __init__(self):
+        self.console = Console()
+        self.file_copier = FileCopier(self.console)
+        self.dir_copier = DirectoryCopier(self.console)
+
+    def safe_copy_file(self, source: PathLike, destination: PathLike) -> None:
+        """Safely copy a file with error handling."""
+        try:
+            self.file_copier.copy_file(source, destination)
+        except Exception as e:
+            self.console.print(f"[bold red]Error: {str(e)}")
+
+    def safe_copy_directory(self, source: PathLike, destination: PathLike) -> None:
+        """Safely copy a directory with error handling."""
+        try:
+            stats = self.dir_copier.copy_directory(source, destination)
+            self.print_copy_stats(stats)
+        except Exception as e:
+            self.console.print(f"[bold red]Error: {str(e)}")
+
+    def get_files_in_directory(self, directory: PathLike) -> List[Path]:
+        """Get all files in a directory and its subdirectories."""
+        try:
+            dir_path = Path(directory)
+            PathValidator.validate_path_type(directory, "directory")
+            PathValidator.validate_source_exists(dir_path)
+            PathValidator.validate_is_directory(dir_path)
+            return list(dir_path.rglob("*"))
+        except Exception as e:
+            self.console.print(f"[bold red]Error listing files: {str(e)}")
+            return []
+
+    def print_copy_stats(self, stats: CopyStats) -> None:
+        """Print copy operation statistics."""
+        self.console.print("\n[bold green]Copy Operation Summary:")
+        self.console.print(f"Total directories: {stats.total_dirs}")
+        self.console.print(f"Total files: {stats.total_files}")
+        self.console.print(
+            f"Total bytes copied: {stats.total_bytes:,} "
+            f"({stats.total_bytes / 1024 / 1024:.2f} MB)"
+        )
+
+        if stats.failed_operations:
+            self.console.print("\n[bold red]Failed Operations:")
+            for failure in stats.failed_operations:
+                self.console.print(f"- {failure}")
+
+
+# Create a global instance for convenient access
+fs_ops = FileSystemOperations()
+
+
+# Provide convenience functions at module level
+def safe_copy_file(source: PathLike, destination: PathLike) -> None:
+    """Convenience function for safely copying a file."""
+    fs_ops.safe_copy_file(source, destination)
+
+
+def safe_copy_directory(source: PathLike, destination: PathLike) -> None:
+    """Convenience function for safely copying a directory."""
+    fs_ops.safe_copy_directory(source, destination)
+
+
+def get_copied_files(directory: PathLike) -> List[Path]:
+    """Convenience function for getting files in a directory."""
+    return fs_ops.get_files_in_directory(directory)

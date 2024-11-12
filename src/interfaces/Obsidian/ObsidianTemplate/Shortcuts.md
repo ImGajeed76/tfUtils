@@ -1,5 +1,5 @@
 #### New Journal
-`Ctrl + Shift + J` 
+`Ctrl + Shift + J`
 
 #### New Excalidraw drawing
 `Ctrl + Shift + E`

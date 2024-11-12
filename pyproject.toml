@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "N", "B", "UP"]
+ignore = ["B008"]
+target-version = "py38"

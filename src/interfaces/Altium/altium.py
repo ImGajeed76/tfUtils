@@ -5,18 +5,18 @@ from pathlib import Path
 
 from rich.prompt import Prompt
 
-from src.lib.console import ask_select, ask_input, ask_yes_no
+from src.lib.console import ask_input, ask_select, ask_yes_no
 from src.lib.interface import interface
 from src.lib.paths import PATHS
-from src.lib.utils import safe_copy_directory, console
+from src.lib.utils import console, safe_copy_directory
 
 
 def get_all_schema_layout_templates():
     template_dirs = []
 
-    for path in PATHS["ALTIUM_TEMPLATES_PATH"].rglob('*'):
+    for path in PATHS["ALTIUM_TEMPLATES_PATH"].rglob("*"):
         if path.is_dir():
-            if any(file.suffix in ('.PRJPCB') for file in path.iterdir()):
+            if any(file.suffix in (".PRJPCB") for file in path.iterdir()):
                 template_dirs.append(path)
 
     return template_dirs
@@ -32,18 +32,30 @@ def new_altium_project(default_name=None, create_new_dir=None):
     # sort the templates by path
     template_paths.sort()
 
-    template_names = [str(path.relative_to(PATHS["ALTIUM_TEMPLATES_PATH"])) for path in template_paths]
+    template_names = [
+        str(path.relative_to(PATHS["ALTIUM_TEMPLATES_PATH"])) for path in template_paths
+    ]
 
     template_index = ask_select("Select an Altium Template", choices=template_names)
     template_path = template_paths[template_index]
 
-    project_name = ask_input("Projekt Name", "Was ist der Name deines Altium Projekts", placeholder=default_name)
+    project_name = ask_input(
+        "Projekt Name",
+        "Was ist der Name deines Altium Projekts",
+        placeholder=default_name,
+    )
 
     project_path = Path.cwd()
 
     if create_new_dir is None:
-        use_new = ask_yes_no("Neuen Ordner erstellen?",
-                             f"Möchtest du einen neuen Ordner mit dem namen '{project_name}' in diesem Ordner erstellen?\nDer neue Pfad währe dann: ./{Path.cwd().name}/{project_name}")
+        use_new = ask_yes_no(
+            "Neuen Ordner erstellen?",
+            (
+                f"Möchtest du einen neuen Ordner mit dem namen '{project_name}' "
+                f"in diesem Ordner erstellen?\n"
+                f"Der neue Pfad währe dann: ./{Path.cwd().name}/{project_name}"
+            ),
+        )
     else:
         use_new = create_new_dir
 
@@ -53,27 +65,35 @@ def new_altium_project(default_name=None, create_new_dir=None):
 
     safe_copy_directory(template_path, project_path)
 
-    console.print(f"[green]Successfully[/green] copied template to [yellow]{project_path}[/yellow]")
+    console.print(
+        f"[green]Successfully[/green] "
+        f"copied template to [yellow]{project_path}[/yellow]"
+    )
 
     # Run post-copy operations
     update_project_version(project_path, "V1.0")
     rename_project(project_path, project_name)
 
-    console.print(f"[green]Successfully[/green] updated project version and renamed project")
+    console.print(
+        "[green]Successfully[/green] updated project version and renamed project"
+    )
 
 
 def update_project_version(project_path: Path, version=None):
     os.chdir(project_path)
     # Extract old project name and version
-    old_filename = next(Path.cwd().glob('*.PRJPCB')).stem
-    project_name, old_project_version = old_filename.split('_')
+    old_filename = next(Path.cwd().glob("*.PRJPCB")).stem
+    project_name, old_project_version = old_filename.split("_")
     old_project_version = old_project_version[1:]
 
     # Extract Version
     old_project_version_major = 1
     old_project_version_minor = 0
-    if '.' in old_project_version:
-        old_project_version_major, old_project_version_minor = old_project_version.split('.')
+    if "." in old_project_version:
+        (
+            old_project_version_major,
+            old_project_version_minor,
+        ) = old_project_version.split(".")
         old_project_version_major = int(old_project_version_major)
         old_project_version_minor = int(old_project_version_minor)
     elif old_project_version[1:].isnumeric():
@@ -84,26 +104,30 @@ def update_project_version(project_path: Path, version=None):
         console.print("The new version number is composed as follows:")
         console.print("[yellow]x[/yellow].[magenta]y[/magenta]")
         console.print("| |")
-        console.print("| +------- [magenta]Minor version[/magenta] number (extensions & bug fixes)")
         console.print(
-            "+--------- [yellow]Major version[/yellow] number (new start / extremely significant change / no backward compatibility)")
+            "| +------- [magenta]Minor version[/magenta] number "
+            "(extensions & bug fixes)"
+        )
+        console.print(
+            "+--------- [yellow]Major version[/yellow] number "
+            "(new start / extremely significant change / no backward compatibility)"
+        )
         console.print()
-        console.print(f"Old project version: {old_project_version_major}.{old_project_version_minor}")
+        console.print(
+            f"Old project version: "
+            f"{old_project_version_major}.{old_project_version_minor}"
+        )
 
         new_minor_release = None
 
         new_major_release = Prompt.ask("New major version number")
         while True:
-            # ask the user for major version number until they enter a valid number
-            # valid is any number greater or equal to the old major version number
-            # or a version of x.y where x is greater or equal than the old major version number
-            # or y is greater than the old minor version number
             if new_major_release.isnumeric():
                 if int(new_major_release) >= int(old_project_version_major):
                     new_major_release = int(new_major_release)
                     break
-            elif '.' in new_major_release:
-                major, minor = new_major_release.split('.')
+            elif "." in new_major_release:
+                major, minor = new_major_release.split(".")
                 if not (major.isnumeric() and minor.isnumeric()):
                     continue
 
@@ -113,12 +137,17 @@ def update_project_version(project_path: Path, version=None):
                     new_major_release = major
                     new_minor_release = minor
                     break
-                elif major == old_project_version_major and minor > old_project_version_minor:
+                elif (
+                    major == old_project_version_major
+                    and minor > old_project_version_minor
+                ):
                     new_major_release = major
                     new_minor_release = minor
                     break
             new_major_release = Prompt.ask(
-                "New major version number (must be greater or equal to the old major version number)")
+                "New major version number "
+                "(must be greater or equal to the old major version number)"
+            )
 
         if new_minor_release is None:
             new_minor_release = Prompt.ask("New minor version number")
@@ -129,7 +158,9 @@ def update_project_version(project_path: Path, version=None):
                         new_minor_release = int(new_minor_release)
                         break
                 new_minor_release = Prompt.ask(
-                    "New minor version number (must be greater than the old minor version number)")
+                    "New minor version number "
+                    "(must be greater than the old minor version number)"
+                )
 
         new_project_version = f"V{new_major_release}.{new_minor_release}"
 
@@ -141,7 +172,7 @@ def update_project_version(project_path: Path, version=None):
         comment = "Initial Project Creation"
 
     # Get user initials
-    user = getpass.getuser().split('\\')[-1][-4:]
+    user = getpass.getuser().split("\\")[-1][-4:]
     user = Prompt.ask("User initials", default=user)
 
     # Get current date
@@ -151,16 +182,29 @@ def update_project_version(project_path: Path, version=None):
     new_filename = f"{project_name}_{new_project_version}"
 
     # Rename files
-    _rename_files(project_path, old_filename, new_filename, project_name, old_project_version, new_project_version)
+    _rename_files(
+        project_path,
+        old_filename,
+        new_filename,
+        project_name,
+        old_project_version,
+        new_project_version,
+    )
 
     # Edit project files
-    _edit_project_files(project_path, old_filename, new_filename, project_name, old_project_version,
-                        new_project_version)
+    _edit_project_files(
+        project_path,
+        old_filename,
+        new_filename,
+        project_name,
+        old_project_version,
+        new_project_version,
+    )
 
     # Update history file
     history_line = f"{new_project_version[1:]}\t\t{user}\t{date}\t{comment}"
-    with open('_history.txt', 'a') as f:
-        f.write(history_line + '\n')
+    with open("_history.txt", "a") as f:
+        f.write(history_line + "\n")
 
     console.print("[green]Project version updated successfully.[/green]")
 
@@ -169,8 +213,8 @@ def rename_project(project_path: Path, new_project_name=None):
     os.chdir(project_path)
 
     # Extract old project name and version
-    old_filename = next(Path.cwd().glob('*.PRJPCB')).stem
-    old_project_name, project_version = old_filename.split('_')
+    old_filename = next(Path.cwd().glob("*.PRJPCB")).stem
+    old_project_name, project_version = old_filename.split("_")
 
     # Display old project name
     console.print(f"Old project name: {old_project_name}")
@@ -183,29 +227,54 @@ def rename_project(project_path: Path, new_project_name=None):
     new_filename = f"{new_project_name}_{project_version}"
 
     # Rename files
-    _rename_files(project_path, old_filename, new_filename, old_project_name, project_version, project_version,
-                  new_project_name)
+    _rename_files(
+        project_path,
+        old_filename,
+        new_filename,
+        old_project_name,
+        project_version,
+        project_version,
+        new_project_name,
+    )
 
     # Edit project files
-    _edit_project_files(project_path, old_filename, new_filename, old_project_name, project_version, project_version,
-                        new_project_name)
+    _edit_project_files(
+        project_path,
+        old_filename,
+        new_filename,
+        old_project_name,
+        project_version,
+        project_version,
+        new_project_name,
+    )
 
     console.print("[green]Project renamed successfully.[/green]")
 
 
-def _rename_files(project_path: Path, old_filename, new_filename, project_name, old_version, new_version,
-                  new_project_name=None):
+def _rename_files(
+    project_path: Path,
+    old_filename,
+    new_filename,
+    project_name,
+    old_version,
+    new_version,
+    new_project_name=None,
+):
     new_project_name = new_project_name or project_name
     file_mappings = [
         (f"{old_filename}.PRJPCB", f"{new_filename}.PRJPCB"),
         (f"{old_filename}.OutJob", f"{new_filename}.OutJob"),
         (f"Layout/{old_filename}.PcbDoc", f"Layout/{new_filename}.PcbDoc"),
-        (f"Layout/{project_name}_Panel_{old_version}.PcbDoc",
-         f"Layout/{new_project_name}_Panel_{new_version}.PcbDoc"),
+        (
+            f"Layout/{project_name}_Panel_{old_version}.PcbDoc",
+            f"Layout/{new_project_name}_Panel_{new_version}.PcbDoc",
+        ),
         (f"Layout/{old_filename}.PcbLib", f"Layout/{new_filename}.PcbLib"),
         (f"Schema/{old_filename}.SchDoc", f"Schema/{new_filename}.SchDoc"),
-        (f"Schema/{project_name}_Blockschema_{old_version}.SchDoc",
-         f"Schema/{new_project_name}_Blockschema_{new_version}.SchDoc"),
+        (
+            f"Schema/{project_name}_Blockschema_{old_version}.SchDoc",
+            f"Schema/{new_project_name}_Blockschema_{new_version}.SchDoc",
+        ),
         (f"Schema/{old_filename}.SchLib", f"Schema/{new_filename}.SchLib"),
     ]
 
@@ -216,42 +285,54 @@ def _rename_files(project_path: Path, old_filename, new_filename, project_name, 
             old_full_path.rename(new_full_path)
 
 
-def _edit_project_files(project_path: Path, old_filename, new_filename, project_name, old_version, new_version,
-                        new_project_name=None):
+def _edit_project_files(
+    project_path: Path,
+    old_filename,
+    new_filename,
+    project_name,
+    old_version,
+    new_version,
+    new_project_name=None,
+):
     new_project_name = new_project_name or project_name
     file_paths = [f"{new_filename}.PRJPCB", f"{new_filename}.OutJob"]
 
     for file_path in file_paths:
         full_path = project_path / file_path
         if full_path.exists():
-            with open(full_path, 'r') as file:
+            with open(full_path) as file:
                 content = file.read()
 
             replacements = [
                 (f"{old_filename}.OutJob", f"{new_filename}.OutJob"),
                 (f"{old_filename}.PcbDoc", f"{new_filename}.PcbDoc"),
-                (f"{project_name}_Panel_{old_version}.PcbDoc", f"{new_project_name}_Panel_{new_version}.PcbDoc"),
+                (
+                    f"{project_name}_Panel_{old_version}.PcbDoc",
+                    f"{new_project_name}_Panel_{new_version}.PcbDoc",
+                ),
                 (f"{old_filename}.PcbLib", f"{new_filename}.PcbLib"),
                 (f"{old_filename}.SchDoc", f"{new_filename}.SchDoc"),
-                (f"{project_name}_Blockschema_{old_version}.SchDoc",
-                 f"{new_project_name}_Blockschema_{new_version}.SchDoc"),
+                (
+                    f"{project_name}_Blockschema_{old_version}.SchDoc",
+                    f"{new_project_name}_Blockschema_{new_version}.SchDoc",
+                ),
                 (f"{old_filename}.SchLib", f"{new_filename}.SchLib"),
             ]
 
             for old, new in replacements:
                 content = content.replace(old, new)
 
-            with open(full_path, 'w') as file:
+            with open(full_path, "w") as file:
                 file.write(content)
 
 
 def is_altium_project() -> bool:
-    return any(file.suffix in ('.PRJPCB') for file in Path.cwd().rglob('*.PRJPCB'))
+    return any(file.suffix in (".PRJPCB") for file in Path.cwd().rglob("*.PRJPCB"))
 
 
 @interface("Altium Projekt umbenennen", is_altium_project())
 def rename_altium_project():
-    for path in Path.cwd().rglob('*.PRJPCB'):
+    for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
@@ -259,12 +340,12 @@ def rename_altium_project():
 
     rename_project(project_path)
 
-    console.print(f"[green]Successfully[/green] renamed project")
+    console.print("[green]Successfully[/green] renamed project")
 
 
 @interface("Altium Projekt Version ändern", is_altium_project())
 def run():
-    for path in Path.cwd().rglob('*.PRJPCB'):
+    for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
@@ -272,4 +353,4 @@ def run():
 
     update_project_version(project_path)
 
-    console.print(f"[green]Successfully[/green] updated project version")
+    console.print("[green]Successfully[/green] updated project version")

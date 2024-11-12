@@ -7567,7 +7567,7 @@ function formatStyles(colors, alternateColors, forceCurrentColorUse) {
       return variables;
     }
   }, addAltHighlightColors(alternateColors, true))}
-    } 
+    }
     body.codeblock-customizer.theme-dark {
       ${Object.keys(stylesDict).reduce((variables, key) => {
     const cssVariable = `--codeblock-customizer-${stylesDict[key]}`;

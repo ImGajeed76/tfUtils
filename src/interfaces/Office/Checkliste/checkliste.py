@@ -28,4 +28,4 @@ def _copy_checklist(pattern: str):
     current_dir = Path().cwd()
     safe_copy_file(checklist_file, current_dir)
 
-    console.print(f"[green]Checklist file copied successfully![/green]")
+    console.print("[green]Checklist file copied successfully![/green]")
