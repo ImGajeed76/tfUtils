@@ -26,7 +26,7 @@ def get_all_schema_layout_templates():
     return template_dirs
 
 
-@interface("Neues Altium Projekt")
+@interface("Neues Altium Projekt", activate=ALTIUM_TEMPLATES_PATH.is_valid)
 def new_altium_project(default_name=None, create_new_dir=None):
     if default_name is None:
         default_name = Path.cwd().name

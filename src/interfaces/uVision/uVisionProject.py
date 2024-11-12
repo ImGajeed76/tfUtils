@@ -105,7 +105,7 @@ def convert_to_clion(
         shutil.copy2(workspace_config_file, workspace_xml_path)
 
 
-@interface("Neues uVision Projekt")
+@interface("Neues uVision Projekt", activate=U_VISION_TEMPLATES_PATH.is_valid)
 def create_new_project():
     console.print("uVision Templates werden geladen...")
 

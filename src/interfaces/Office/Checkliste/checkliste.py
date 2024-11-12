@@ -7,12 +7,12 @@ from src.lib.utils import console, safe_copy_file
 CHECKLIST_TEMPLATES_PATH = NetworkPath(r"T:\E\LIVE\05_HW_Entwicklung\08_Checklisten")
 
 
-@interface("Schema-Checkliste erstellen")
+@interface("Schema-Checkliste erstellen", activate=CHECKLIST_TEMPLATES_PATH.is_valid)
 def create_schema_checklist():
     _copy_checklist("Checkliste_SCH_v*.docx")
 
 
-@interface("PCB-Checkliste erstellen")
+@interface("PCB-Checkliste erstellen", activate=CHECKLIST_TEMPLATES_PATH.is_valid)
 def create_pcb_checklist():
     _copy_checklist("Checkliste_PCB_v*.docx")
 

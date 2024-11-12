@@ -11,7 +11,7 @@ DEFAULT_STRUCT_FOLDER = NetworkPath(
 )
 
 
-@interface("Neue Projektstruktur erstellen")
+@interface("Neue Projektstruktur erstellen", activate=DEFAULT_STRUCT_FOLDER.is_valid)
 def create_new_project_structure():
     from src.interfaces.Altium.altium import new_altium_project
     from src.interfaces.Obsidian.obsidian import create_new_obsidian_vault

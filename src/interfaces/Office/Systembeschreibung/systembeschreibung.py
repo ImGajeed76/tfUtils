@@ -9,7 +9,7 @@ from src.lib.utils import console, safe_copy_file
 OFFICE_PATH = NetworkPath(r"T:\E\LIVE\02_Vorlagen\01_Office")
 
 
-@interface("Systembeschreibung erstellen")
+@interface("Systembeschreibung erstellen", activate=OFFICE_PATH.is_valid)
 def create_new_system_description():
     sys_files = list(OFFICE_PATH.glob("Systembeschreibung_Vorlage_v*.dotx"))
     sys_files.sort()
@@ -34,7 +34,9 @@ def systembeschreibung_exists() -> bool:
     return len(sys_files) > 0
 
 
-@interface("Systembeschreibung Bilder exportieren")
+@interface(
+    "Systembeschreibung Bilder exportieren", activate=systembeschreibung_exists()
+)
 def export_system_description_images():
     sys_files = list(Path().cwd().glob("Systembeschreibung*.dotx"))
     sys_files.sort()
