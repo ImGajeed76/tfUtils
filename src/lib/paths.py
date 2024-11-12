@@ -1,14 +1,23 @@
-import os
-import sys
-from pathlib import Path, WindowsPath
-from typing import Optional
+from pathlib import WindowsPath
 
 
-class NetworkPath(WindowsPath):
+class ValidatedWindowsPath(WindowsPath):
+    """A WindowsPath that knows if it's valid."""
+
+    def __new__(cls, *args, is_valid: bool = False, **kwargs):
+        self = super().__new__(cls, *args, **kwargs)
+        self._is_valid = is_valid
+        return self
+
+    @property
+    def is_valid(self) -> bool:
+        return self._is_valid
+
+
+class NetworkPath:
     """
-    Extension of pathlib.WindowsPath that handles network path mapping.
-    Automatically tries to find the correct drive letter
-    if the network path doesn't exist.
+    Factory class that creates ValidatedWindowsPath objects with
+    automatic network path mapping.
     """
 
     _network_mappings = {
@@ -18,113 +27,34 @@ class NetworkPath(WindowsPath):
         "U:": "u_archiv",
     }
 
-    def __new__(cls, *args, **kwargs):
-        try:
-            # Handle different Python versions
-            if sys.version_info >= (3, 12):
-                # Python 3.12+ initialization
-                temp_path = WindowsPath(*args)
-                obj = WindowsPath.__new__(cls, str(temp_path))
-            else:
-                # Pre-Python 3.12 initialization
-                obj = WindowsPath.__new__(cls, *args)
+    def __new__(cls, path_str: str) -> ValidatedWindowsPath:
+        # Create initial path
+        path = ValidatedWindowsPath(path_str)
 
-            # Store original path in a way that works for both versions
-            obj._original_path = str(args[0]) if args else ""
+        # If path exists, return it as valid
+        if path.exists():
+            return ValidatedWindowsPath(path_str, is_valid=True)
 
-            # Check if path exists without using pathlib's exists()
+        # Try to remap if it's a network path
+        original_drive = path_str[:2] if len(path_str) >= 2 else ""
+        if original_drive not in cls._network_mappings:
+            return ValidatedWindowsPath(path_str, is_valid=False)
+
+        network_folder = cls._network_mappings[original_drive]
+        remaining_path = path_str.split("\\", 1)[1] if "\\" in path_str else ""
+
+        # Search through drive letters
+        for letter in [f"{chr(i)}:" for i in range(65, 91)]:  # A: through Z:
             try:
-                obj._is_valid = os.path.exists(str(obj))
-            except Exception:
-                obj._is_valid = False
-
-            # If path doesn't exist, try to remap it
-            if not obj._is_valid:
-                remapped = obj._find_and_remap_path()
-                if remapped:
-                    # Create new WindowsPath with remapped path and
-                    # copy over our custom attributes
-                    if sys.version_info >= (3, 12):
-                        new_obj = WindowsPath.__new__(cls, str(remapped))
-                    else:
-                        new_obj = WindowsPath.__new__(cls, remapped)
-                    new_obj._original_path = obj._original_path
-                    new_obj._is_valid = True
-                    print(f"Remapped path to: {remapped}")
-                    return new_obj
-                print(f"Warning: Could not find valid path for {obj._original_path}")
-                print("Please write to et22seol and ask for help")
-
-            return obj
-
-        except Exception as e:
-            # Fallback to creating a regular WindowsPath if something goes wrong
-            print(f"Warning: Error creating NetworkPath: {e}")
-            return WindowsPath(*args)
-
-    @property
-    def original_path(self):
-        """Safe access to original path"""
-        return Path(self._original_path)
-
-    @property
-    def is_valid(self):
-        """Safe access to validity status"""
-        return getattr(self, "_is_valid", False)
-
-    def _find_and_remap_path(self) -> Optional[Path]:
-        """
-        Attempts to find the correct drive letter by
-        searching for the t_lernende folder
-        and remaps the path accordingly.
-
-        Returns:
-            Optional[Path]: The remapped path if successful, None otherwise
-        """
-        # Search through all possible drive letters
-        drive_letters = [f"{chr(i)}:" for i in range(65, 91)]  # A: through Z:
-
-        for letter in drive_letters:
-            test_path = os.path.join(letter, "t_lernende")
-            try:
-                if os.path.exists(test_path):
-                    # Found the correct drive, remap the path
-                    new_path = self._remap_path(letter)
-                    if new_path and os.path.exists(str(new_path)):
-                        return new_path
+                test_path = ValidatedWindowsPath(f"{letter}\\{network_folder}")
+                if test_path.exists():
+                    new_path = test_path / remaining_path
+                    if new_path.exists():
+                        print(f"Remapped path to: {new_path}")
+                        return ValidatedWindowsPath(new_path, is_valid=True)
             except Exception:
                 continue
 
-        return None
-
-    def _remap_path(self, new_drive: str) -> Optional[Path]:
-        """
-        Remaps the path to the new drive letter based on the network mapping.
-
-        Args:
-            new_drive: The new drive letter to map to (e.g. 'D:')
-
-        Returns:
-            Optional[Path]: The remapped path if successful, None otherwise
-        """
-        try:
-            # Get original drive in a version-compatible way
-            original_path_str = str(self._original_path)
-            original_drive = (
-                original_path_str[:2] if len(original_path_str) >= 2 else ""
-            )
-
-            if original_drive not in self._network_mappings:
-                return None
-
-            network_folder = self._network_mappings[original_drive]
-
-            # Split path in a way that works for both versions
-            parts = original_path_str.split("\\", 1)
-            remaining_path = parts[1] if len(parts) > 1 else ""
-
-            new_path = Path(f"{new_drive}\\{network_folder}") / remaining_path
-            return new_path
-        except Exception as e:
-            print(f"Error in _remap_path: {e}")
-            return None
+        print(f"Warning: Could not find valid path for {path_str}")
+        print("Please write to et22seol and ask for help")
+        return ValidatedWindowsPath(path_str, is_valid=False)

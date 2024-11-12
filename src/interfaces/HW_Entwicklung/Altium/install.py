@@ -7,7 +7,7 @@ from src.lib.paths import NetworkPath
 from src.lib.utils import console, safe_copy_file
 
 ALTIUM_INSTALLER_PATH = NetworkPath(
-    r"Z:\t_lernende\E\PROGRAMME\02_HW-Entwicklung\AltiumDesigner\AD24"
+    r"T:\E\PROGRAMME\02_HW-Entwicklung\AltiumDesigner\AD24"
 )
 
 
