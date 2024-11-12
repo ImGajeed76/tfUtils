@@ -24,15 +24,15 @@ class NetworkPath(WindowsPath):
             if sys.version_info >= (3, 12):
                 # Python 3.12+ initialization
                 temp_path = WindowsPath(*args)
-                obj = super().__new__(cls, str(temp_path))
+                obj = WindowsPath.__new__(cls, str(temp_path))
             else:
                 # Pre-Python 3.12 initialization
-                obj = super().__new__(cls, *args, **kwargs)
+                obj = WindowsPath.__new__(cls, *args)
 
             # Store original path in a way that works for both versions
             obj._original_path = str(args[0]) if args else ""
 
-            # Check if path exists
+            # Check if path exists without using pathlib's exists()
             try:
                 obj._is_valid = os.path.exists(str(obj))
             except Exception:
@@ -42,8 +42,16 @@ class NetworkPath(WindowsPath):
             if not obj._is_valid:
                 remapped = obj._find_and_remap_path()
                 if remapped:
-                    # Create and return a new NetworkPath with the remapped path
-                    return NetworkPath(remapped)
+                    # Create new WindowsPath with remapped path and
+                    # copy over our custom attributes
+                    if sys.version_info >= (3, 12):
+                        new_obj = WindowsPath.__new__(cls, str(remapped))
+                    else:
+                        new_obj = WindowsPath.__new__(cls, remapped)
+                    new_obj._original_path = obj._original_path
+                    new_obj._is_valid = True
+                    print(f"Remapped path to: {remapped}")
+                    return new_obj
                 print(f"Warning: Could not find valid path for {obj._original_path}")
                 print("Please write to et22seol and ask for help")
 
@@ -83,7 +91,6 @@ class NetworkPath(WindowsPath):
                     # Found the correct drive, remap the path
                     new_path = self._remap_path(letter)
                     if new_path and os.path.exists(str(new_path)):
-                        print(f"Remapped path to: {new_path}")
                         return new_path
             except Exception:
                 continue
@@ -121,22 +128,3 @@ class NetworkPath(WindowsPath):
         except Exception as e:
             print(f"Error in _remap_path: {e}")
             return None
-
-    def exists(self):
-        """
-        Override exists() to use os.path.exists for more reliable behavior
-        across Python versions
-        """
-        try:
-            return os.path.exists(str(self))
-        except Exception:
-            return False
-
-    def __str__(self):
-        """
-        Ensure string representation works in both versions
-        """
-        try:
-            return str(Path(super().__str__()))
-        except Exception:
-            return self._original_path
