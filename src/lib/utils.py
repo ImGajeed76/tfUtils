@@ -7,8 +7,10 @@ and support for Windows network paths.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Protocol, Union
+from typing import List, Optional, Protocol, Tuple, Union
+from urllib.parse import urlparse
 
+import requests
 from rich.console import Console
 from tqdm import tqdm
 
@@ -225,6 +227,100 @@ class DirectoryCopier:
             raise CopyError(f"Failed to copy directory {source_path}: {str(e)}") from e
 
 
+class DownloadError(FileSystemError):
+    """Exception raised when a download operation fails."""
+
+    pass
+
+
+class DownloadValidator(PathValidator):
+    """Validator for download operations."""
+
+    @staticmethod
+    def validate_url(url: str) -> None:
+        """Validate that a URL is properly formatted."""
+        try:
+            result = urlparse(url)
+            if not all([result.scheme, result.netloc]):
+                raise ValidationError("Invalid URL format") from None
+        except Exception as err:
+            raise ValidationError(f"Invalid URL: {str(err)}") from err
+
+    @staticmethod
+    def validate_response(response: requests.Response) -> None:
+        """Validate the response from the server."""
+        response.raise_for_status()
+        if "content-length" not in response.headers:
+            raise ValidationError("Server did not provide content length")
+
+
+class Downloader:
+    """Handles file downloads with progress tracking."""
+
+    def __init__(self, console: Console):
+        self.console = console
+        self.validator = DownloadValidator()
+        self.progress = ProgressTracker(console)
+
+    def download_file(
+        self, url: str, destination: PathLike, chunk_size: int = 8192
+    ) -> Tuple[Path, int]:
+        """
+        Download a file with progress tracking.
+
+        Args:
+            url: URL to download from
+            destination: Destination path (file or directory)
+            chunk_size: Size of chunks to download
+
+        Returns:
+            Tuple of (Path to downloaded file, total bytes downloaded)
+
+        Raises:
+            DownloadError: If the download operation fails
+        """
+        try:
+            # Validate URL
+            self.validator.validate_url(url)
+
+            # Validate and prepare destination
+            dest_path = Path(destination)
+            self.validator.validate_path_type(destination, "destination")
+
+            # If destination is a directory, use filename from URL
+            if dest_path.is_dir():
+                filename = url.split("/")[-1]
+                dest_path = dest_path / filename
+
+            # Ensure destination directory exists
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Start download with progress tracking
+            with requests.get(url, stream=True) as response:
+                self.validator.validate_response(response)
+
+                total_size = int(response.headers["content-length"])
+                with self.progress.create_progress_bar(
+                    total_size,
+                    f"Downloading {dest_path.name}",
+                    unit="B",
+                    unit_scale=True,
+                ) as pbar:
+                    with open(dest_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=chunk_size):
+                            if chunk:
+                                f.write(chunk)
+                                self.progress.update_progress(pbar, len(chunk))
+
+            self.console.print(f"[green]Successfully downloaded to {dest_path}")
+            return dest_path, total_size
+
+        except requests.RequestException as e:
+            raise DownloadError(f"Download failed: {str(e)}") from e
+        except Exception as e:
+            raise DownloadError(f"Download operation failed: {str(e)}") from e
+
+
 class FileSystemOperations:
     """High-level interface for file system operations."""
 
@@ -232,6 +328,7 @@ class FileSystemOperations:
         self.console = Console()
         self.file_copier = FileCopier(self.console)
         self.dir_copier = DirectoryCopier(self.console)
+        self.downloader = Downloader(self.console)
 
     def safe_copy_file(self, source: PathLike, destination: PathLike) -> None:
         """Safely copy a file with error handling."""
@@ -275,6 +372,32 @@ class FileSystemOperations:
             for failure in stats.failed_operations:
                 self.console.print(f"- {failure}")
 
+    def safe_download(
+        self, url: str, destination: PathLike
+    ) -> Tuple[Optional[Path], Optional[str]]:
+        """
+        Safely download a file with error handling.
+
+        Args:
+            url: URL to download from
+            destination: Destination path (file or directory)
+
+        Returns:
+            Tuple of (Path to downloaded file or None, error message or None)
+        """
+        try:
+            file_path, total_bytes = self.downloader.download_file(url, destination)
+            self.console.print(
+                f"\n[bold green]Download Summary:"
+                f"\nFile: {file_path.name}"
+                f"\nSize: {total_bytes:,} bytes ({total_bytes / 1024 / 1024:.2f} MB)"
+            )
+            return file_path, None
+        except Exception as e:
+            error_msg = f"Download failed: {str(e)}"
+            self.console.print(f"[bold red]Error: {error_msg}")
+            return None, error_msg
+
 
 # Create a global instance for convenient access
 fs_ops = FileSystemOperations()
@@ -294,3 +417,10 @@ def safe_copy_directory(source: PathLike, destination: PathLike) -> None:
 def get_copied_files(directory: PathLike) -> List[Path]:
     """Convenience function for getting files in a directory."""
     return fs_ops.get_files_in_directory(directory)
+
+
+def safe_download(
+    url: str, destination: PathLike
+) -> Tuple[Optional[Path], Optional[str]]:
+    """Convenience function for safely downloading a file."""
+    return fs_ops.safe_download(url, destination)
