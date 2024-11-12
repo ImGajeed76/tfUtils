@@ -4,43 +4,45 @@ import PyInstaller.__main__
 
 # Build Configuration
 EXECUTABLE_NAME = "utils"
-OUTPUT_DIR = "output"  # relative to script location
-SRC_DIR = "src"  # relative to script location
-MAIN_SCRIPT = "main.py"  # relative to script location
+OUTPUT_DIR = "output"
+SRC_DIR = "src"
+MAIN_SCRIPT = "main.py"
 
 
 def build_executable():
-    # Get absolute path to script directory
     base_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Define paths
     main_script = os.path.join(base_dir, MAIN_SCRIPT)
     src_dir = os.path.join(base_dir, SRC_DIR)
     output_dir = os.path.join(base_dir, OUTPUT_DIR)
+    version_file = os.path.join(base_dir, "version_info.txt")
+    icon_file = os.path.join(base_dir, "icon.ico")
 
     options = [
         "--noconfirm",
         "--onefile",
         "--console",
+        "--clean",
         "--target-architecture",
-        "x86_64",  # Windows 64-bit
+        "x86_64",
+        "--disable-windowed-traceback",
+        "--version-file",
+        version_file,
         "--name",
         EXECUTABLE_NAME,
         "--distpath",
-        output_dir,  # Set output directory
+        output_dir,
         "--workpath",
-        os.path.join(output_dir, "build"),  # Set build directory
+        os.path.join(output_dir, "build"),
         "--specpath",
-        output_dir,  # Set spec file directory
+        output_dir,
         "--add-data",
         f"{src_dir}{os.pathsep}src/",
+        "--icon",
+        icon_file,
         main_script,
     ]
 
-    # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-
-    # Run PyInstaller
     PyInstaller.__main__.run(options)
 
 

@@ -1,0 +1,25 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 0, 1, 0),
+    prodvers=(1, 0, 1, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'FileDescription', u'A comprehensive utility tool for streamlining project creation and management across various platforms.'),
+         StringStruct(u'FileVersion', u'1.0.1'),
+         StringStruct(u'InternalName', u'utils'),
+         StringStruct(u'LegalCopyright', u'GPL-3.0 License'),
+         StringStruct(u'OriginalFilename', u'utils.exe'),
+         StringStruct(u'ProductName', u'Utils'),
+         StringStruct(u'ProductVersion', u'1.0.1')])
+    ])
+  ]
+)
