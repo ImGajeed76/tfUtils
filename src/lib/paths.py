@@ -1,3 +1,5 @@
+import os
+import sys
 from pathlib import Path, WindowsPath
 from typing import Optional
 
@@ -17,25 +19,50 @@ class NetworkPath(WindowsPath):
     }
 
     def __new__(cls, *args, **kwargs):
-        # First create the path object
-        obj = super().__new__(cls, *args, **kwargs)
+        try:
+            # Handle different Python versions
+            if sys.version_info >= (3, 12):
+                # Python 3.12+ initialization
+                temp_path = WindowsPath(*args)
+                obj = super().__new__(cls, str(temp_path))
+            else:
+                # Pre-Python 3.12 initialization
+                obj = super().__new__(cls, *args, **kwargs)
 
-        # Store original path and check validity
-        obj.original_path = Path(args[0])
-        obj.is_valid = obj.exists()
+            # Store original path in a way that works for both versions
+            obj._original_path = str(args[0]) if args else ""
 
-        # If path doesn't exist, try to remap it
-        if not obj.is_valid:
-            remapped = obj._find_and_remap_path()
-            if remapped:
-                # Create and return a new NetworkPath with the remapped path
-                return NetworkPath(remapped)
-            print(
-                f"[red]Warning: Could not find valid path for {obj.original_path}[/red]"
-            )
-            print("[red]Please write to et22seol and ask for help[/red]")
+            # Check if path exists
+            try:
+                obj._is_valid = os.path.exists(str(obj))
+            except Exception:
+                obj._is_valid = False
 
-        return obj
+            # If path doesn't exist, try to remap it
+            if not obj._is_valid:
+                remapped = obj._find_and_remap_path()
+                if remapped:
+                    # Create and return a new NetworkPath with the remapped path
+                    return NetworkPath(remapped)
+                print(f"Warning: Could not find valid path for {obj._original_path}")
+                print("Please write to et22seol and ask for help")
+
+            return obj
+
+        except Exception as e:
+            # Fallback to creating a regular WindowsPath if something goes wrong
+            print(f"Warning: Error creating NetworkPath: {e}")
+            return WindowsPath(*args)
+
+    @property
+    def original_path(self):
+        """Safe access to original path"""
+        return Path(self._original_path)
+
+    @property
+    def is_valid(self):
+        """Safe access to validity status"""
+        return getattr(self, "_is_valid", False)
 
     def _find_and_remap_path(self) -> Optional[Path]:
         """
@@ -47,16 +74,19 @@ class NetworkPath(WindowsPath):
             Optional[Path]: The remapped path if successful, None otherwise
         """
         # Search through all possible drive letters
-        drive_letters = [f"{chr(i)}:" for i in range(65, 91)]
+        drive_letters = [f"{chr(i)}:" for i in range(65, 91)]  # A: through Z:
 
         for letter in drive_letters:
-            test_path = Path(f"{letter}\\t_lernende")
-            if test_path.exists():
-                # Found the correct drive, remap the path
-                new_path = self._remap_path(letter)
-                if new_path and new_path.exists():
-                    print(f"Remapped path to: {new_path}")
-                    return new_path
+            test_path = os.path.join(letter, "t_lernende")
+            try:
+                if os.path.exists(test_path):
+                    # Found the correct drive, remap the path
+                    new_path = self._remap_path(letter)
+                    if new_path and os.path.exists(str(new_path)):
+                        print(f"Remapped path to: {new_path}")
+                        return new_path
+            except Exception:
+                continue
 
         return None
 
@@ -70,12 +100,43 @@ class NetworkPath(WindowsPath):
         Returns:
             Optional[Path]: The remapped path if successful, None otherwise
         """
-        original_drive = self.original_path.drive
+        try:
+            # Get original drive in a version-compatible way
+            original_path_str = str(self._original_path)
+            original_drive = (
+                original_path_str[:2] if len(original_path_str) >= 2 else ""
+            )
 
-        if original_drive not in self._network_mappings:
+            if original_drive not in self._network_mappings:
+                return None
+
+            network_folder = self._network_mappings[original_drive]
+
+            # Split path in a way that works for both versions
+            parts = original_path_str.split("\\", 1)
+            remaining_path = parts[1] if len(parts) > 1 else ""
+
+            new_path = Path(f"{new_drive}\\{network_folder}") / remaining_path
+            return new_path
+        except Exception as e:
+            print(f"Error in _remap_path: {e}")
             return None
 
-        network_folder = self._network_mappings[original_drive]
-        remaining_path = str(self.original_path).split("\\", 1)[1]
+    def exists(self):
+        """
+        Override exists() to use os.path.exists for more reliable behavior
+        across Python versions
+        """
+        try:
+            return os.path.exists(str(self))
+        except Exception:
+            return False
 
-        return Path(f"{new_drive}\\{network_folder}") / remaining_path
+    def __str__(self):
+        """
+        Ensure string representation works in both versions
+        """
+        try:
+            return str(Path(super().__str__()))
+        except Exception:
+            return self._original_path
