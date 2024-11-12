@@ -13,12 +13,12 @@ DEFAULT_STRUCT_FOLDER = NetworkPath(
 
 @interface("Neue Projektstruktur erstellen", activate=DEFAULT_STRUCT_FOLDER.is_valid)
 def create_new_project_structure():
-    from src.interfaces.Altium.altium import new_altium_project
-    from src.interfaces.Obsidian.obsidian import create_new_obsidian_vault
+    from src.interfaces.HW_Entwicklung.Altium.altium import new_altium_project
     from src.interfaces.Office.Checkliste.checkliste import (
         create_pcb_checklist,
         create_schema_checklist,
     )
+    from src.interfaces.Office.Obsidian.obsidian import create_new_obsidian_vault
     from src.interfaces.Office.Systembeschreibung.systembeschreibung import (
         create_new_system_description,
     )
