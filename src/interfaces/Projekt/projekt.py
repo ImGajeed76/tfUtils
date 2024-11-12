@@ -3,8 +3,12 @@ from pathlib import Path
 
 from src.lib.console import ask_input, ask_yes_no
 from src.lib.interface import interface
-from src.lib.paths import PATHS
+from src.lib.paths import NetworkPath
 from src.lib.utils import console, safe_copy_directory
+
+DEFAULT_STRUCT_FOLDER = NetworkPath(
+    r"T:\E\LIVE\02_Vorlagen\03_Projektordnerstruktur\EXX-YYY-ZZ_Projektname"
+)
 
 
 @interface("Neue Projektstruktur erstellen")
@@ -37,7 +41,7 @@ def create_new_project_structure():
 
     project_dir.mkdir()
 
-    safe_copy_directory(PATHS["DEFAULT_STRUCT_FOLDER"], project_dir)
+    safe_copy_directory(DEFAULT_STRUCT_FOLDER, project_dir)
 
     console.print("[green]Projekt erfolgreich erstellt![/green]")
 

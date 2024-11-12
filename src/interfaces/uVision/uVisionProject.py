@@ -5,14 +5,16 @@ from typing import Optional
 
 from src.lib.console import ask_input, ask_select, ask_yes_no
 from src.lib.interface import interface
-from src.lib.paths import PATHS
+from src.lib.paths import NetworkPath
 from src.lib.utils import console, safe_copy_directory
+
+U_VISION_TEMPLATES_PATH = NetworkPath(r"T:\E\LIVE\06_SW_Entwicklung\11_Vorlagen")
 
 
 def get_all_uv_templates():
     template_dirs = []
 
-    for path in PATHS["U_VISION_TEMPLATES_PATH"].rglob("*"):
+    for path in U_VISION_TEMPLATES_PATH.rglob("*"):
         if path.is_dir():
             if any(file.suffix in (".uvproj", ".uvprojx") for file in path.iterdir()):
                 template_dirs.append(path)
@@ -113,8 +115,7 @@ def create_new_project():
     template_paths.sort()
 
     template_names = [
-        str(path.relative_to(PATHS["U_VISION_TEMPLATES_PATH"]))
-        for path in template_paths
+        str(path.relative_to(U_VISION_TEMPLATES_PATH)) for path in template_paths
     ]
 
     template_index = ask_select("Wähle eine uVision Vorlage", template_names)

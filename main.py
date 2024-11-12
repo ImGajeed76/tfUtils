@@ -14,7 +14,6 @@ from typing import Callable, Dict, List, Optional, TypedDict
 from rich.prompt import Prompt
 
 from src.lib.console import ask_select
-from src.lib.paths import check_paths
 from src.lib.utils import console
 
 
@@ -159,10 +158,6 @@ def main() -> None:
     console.print(
         "[bright_black]Starting the interface selection tool...[/bright_black]"
     )
-
-    # Check required paths
-    if not check_paths():
-        sys.exit(1)
 
     console.print("[bright_black]Startup finished![/bright_black]")
     console.print(f"Du befindest dich in: [yellow]{Path.cwd()}[/yellow]")
