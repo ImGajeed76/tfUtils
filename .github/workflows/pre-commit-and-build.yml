@@ -54,13 +54,19 @@ jobs:
           poetry install
           poetry run python build.py
 
+      - name: Get current datetime
+        id: datetime
+        run: |
+          echo "datetime=$(Get-Date -Format 'yyyy-MM-dd-HH-mm')" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
       - name: Create pre-release
         uses: softprops/action-gh-release@v1
         with:
           files: output/utils.exe
           prerelease: true
-          name: "Development Build"
-          tag_name: "dev-${{ github.sha }}"
+          name: "Development Build ${{ steps.datetime.outputs.datetime }}"
+          tag_name: "dev-${{ steps.datetime.outputs.datetime }}-${{ github.sha }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
