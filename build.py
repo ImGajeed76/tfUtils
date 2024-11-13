@@ -40,7 +40,7 @@ def generate_app_manifest() -> str:
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Windows 10 and Windows 11 -->
-      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+      <supportedOS Id="{e3aa761f-58e4-4d53-9c37-75f86cbef4d0}"/>
     </application>
   </compatibility>
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
@@ -119,7 +119,7 @@ def create_inno_setup_script(version: str, base_dir: Path, output_dir: Path) -> 
 #define MyAppExeName "{EXECUTABLE_NAME}.exe"
 
 [Setup]
-AppId={{{{D35A1F9C-4A95-4C2B-8235-62C4C3BE85A3}}}}
+AppId={{{{e3aa761f-58e4-4d53-9c37-75f86cbef4d0}}}}
 AppName={{#MyAppName}}
 AppVersion={{#MyAppVersion}}
 AppVerName={{#MyAppName}} {{#MyAppVersion}}
