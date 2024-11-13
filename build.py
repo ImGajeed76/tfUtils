@@ -111,7 +111,7 @@ def create_verification_files(build_dir: str, version: str):
 
 
 def create_inno_setup_script(version: str, base_dir: Path, output_dir: Path) -> str:
-    """Generate Inno Setup script with enhanced metadata"""
+    """Generate Inno Setup script with enhanced permissions and DLL handling"""
     return f"""#define MyAppName "TFUtils CLI"
 #define MyAppVersion "{version}"
 #define MyAppPublisher "Student Project - TFBern"
@@ -127,7 +127,7 @@ AppPublisher={{#MyAppPublisher}}
 AppPublisherURL={{#MyAppURL}}
 AppSupportURL={{#MyAppURL}}
 AppUpdatesURL={{#MyAppURL}}
-DefaultDirName={{autopf}}\\{{#MyAppName}}
+DefaultDirName={{userpf}}\\{{#MyAppName}}
 DefaultGroupName={{#MyAppName}}
 AllowNoIcons=yes
 LicenseFile={str(base_dir / "LICENSE")}
@@ -156,11 +156,14 @@ Name: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: 
 Name: "addtopath"; Description: "Add to PATH"; GroupDescription: "System Integration:"
 
 [Files]
-Source: "{str(output_dir / EXECUTABLE_NAME / '*')}"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs
+Source: "{str(output_dir / EXECUTABLE_NAME / '*')}"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{str(base_dir / 'LICENSE')}"; DestDir: "{{app}}"
 Source: "{str(base_dir / 'README.md')}"; DestDir: "{{app}}"
 Source: "{str(output_dir / EXECUTABLE_NAME / 'verification.json')}"; DestDir: "{{app}}"
 Source: "{str(output_dir / EXECUTABLE_NAME / 'SHA256SUMS')}"; DestDir: "{{app}}"
+
+[Dirs]
+Name: "{{app}}"; Permissions: users-full
 
 [Icons]
 Name: "{{group}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"
@@ -172,19 +175,15 @@ procedure EnvAddPath(Path: string);
 var
     Paths: string;
 begin
-    // Retrieve current path (use empty string if entry not exists)
     if not RegQueryStringValue(HKEY_CURRENT_USER,
         'Environment',
         'Path', Paths)
     then Paths := '';
 
-    // Skip if string already found in path
     if Pos(';' + Uppercase(Path) + ';', ';' + Uppercase(Paths) + ';') > 0 then exit;
 
-    // App string to the end of the path variable
     Paths := Paths + ';'+ Path +';'
 
-    // Overwrite (or create if missing) path environment variable
     if RegWriteStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', Paths)
     then Log(Format('The [%s] added to PATH: [%s]', [Path, Paths]))
     else Log(Format('Error while adding the [%s] to PATH: [%s]', [Path, Paths]));
@@ -201,6 +200,36 @@ end;
 """
 
 
+def generate_runtime_hook() -> str:
+    """Generate a runtime hook to help with DLL loading"""
+    return """import os
+import sys
+import ctypes
+
+def pre_init():
+    if sys.platform == 'win32':
+        # Ensure proper DLL loading
+        if hasattr(sys, 'frozen'):
+            # Get the directory where the exe is located
+            exe_dir = os.path.dirname(sys.executable)
+
+            # Add the exe directory to PATH
+            os.environ['PATH'] = exe_dir + os.pathsep + os.environ.get('PATH', '')
+
+            # Add _internal directory to PATH if it exists
+            internal_dir = os.path.join(exe_dir, '_internal')
+            if os.path.exists(internal_dir):
+                os.environ['PATH'] = internal_dir + os.pathsep + os.environ['PATH']
+
+            # Set DLL directory
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            if hasattr(kernel32, 'SetDllDirectoryW'):
+                kernel32.SetDllDirectoryW(exe_dir)
+
+pre_init()
+"""
+
+
 def build_executable(version: str):
     """
     Build executable using PyInstaller with enhanced security and optimization flags
@@ -209,6 +238,11 @@ def build_executable(version: str):
     main_script = base_dir / MAIN_SCRIPT
     output_dir = base_dir / OUTPUT_DIR
     work_dir = output_dir / "build"
+
+    # Create runtime hook
+    runtime_hook_path = base_dir / "runtime_hook.py"
+    with open(runtime_hook_path, "w") as f:
+        f.write(generate_runtime_hook())
 
     # Create manifest file
     manifest_path = base_dir / "app.manifest"
@@ -230,9 +264,14 @@ def build_executable(version: str):
         "--noconfirm",
         "--log-level",
         "WARN",
+        "--runtime-hook",
+        str(runtime_hook_path),  # Add runtime hook
         "--disable-windowed-traceback",
         "--collect-submodules=src",
         "--collect-data=src",
+        # Add runtime hooks for DLL loading
+        "--hidden-import=ctypes",
+        "--hidden-import=win32ctypes.core",
         # Paths
         "--distpath",
         str(output_dir),
@@ -262,7 +301,7 @@ def build_executable(version: str):
         # Create verification files
         create_verification_files(str(output_dir / EXECUTABLE_NAME), version)
 
-        # Generate Inno Setup script
+        # Modify Inno Setup to ensure proper permissions
         inno_script = create_inno_setup_script(version, base_dir, output_dir)
         inno_script_path = output_dir / "installer.iss"
 
@@ -272,8 +311,9 @@ def build_executable(version: str):
         # Run Inno Setup Compiler
         subprocess.run(["iscc", str(inno_script_path)], check=True)
 
-        # Clean up manifest file
+        # Clean up temporary files
         manifest_path.unlink()
+        runtime_hook_path.unlink()
 
         print("\nBuild completed successfully!")
         print(f"Executable: {output_dir / EXECUTABLE_NAME / f'{EXECUTABLE_NAME}.exe'}")
