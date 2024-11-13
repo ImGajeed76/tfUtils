@@ -19,7 +19,7 @@ target-version = "py38"
 
 [tool.poetry]
 name = "tfutils"
-version = "1.0.1"
+version = "1.0.2"
 description = "A simple and extendible cli for managing files at the TFBern"
 authors = ["imgajeed <github.staging362@passmail.net>"]
 license = "GPL-3.0"
