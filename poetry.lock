@@ -526,6 +526,17 @@ test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "ini2toml[lite] (>=
 type = ["importlib-metadata (>=7.0.2)", "jaraco.develop (>=7.21)", "mypy (>=1.12,<1.14)", "pytest-mypy"]
 
 [[package]]
+name = "tomli"
+version = "2.1.0"
+description = "A lil' TOML parser"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "tomli-2.1.0-py3-none-any.whl", hash = "sha256:a5c57c3d1c56f5ccdf89f6523458f60ef716e210fc47c4cfb188c5ba473e0391"},
+    {file = "tomli-2.1.0.tar.gz", hash = "sha256:3f646cae2aec94e17d04973e4249548320197cfabdf130015d023de4b74d8ab8"},
+]
+
+[[package]]
 name = "tqdm"
 version = "4.67.0"
 description = "Fast, Extensible Progress Meter"
@@ -597,4 +608,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "f47671ca4412a14194fcd4f7bcfecc303265a7849e4eda46a19a765b05fd2e62"
+content-hash = "3fe1d196f68dc4f09737ecdcd8dfb52ebe5bb8004c704f13ce6eb279773a03e3"

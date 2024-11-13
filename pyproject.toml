@@ -14,9 +14,12 @@ select = ["E", "F", "I", "N", "B", "UP"]
 ignore = ["B008"]
 target-version = "py38"
 
+[tool.ruff.per-file-ignores]
+"build.py" = ["E501"]
+
 [tool.poetry]
 name = "tfutils"
-version = "1.0.0"
+version = "1.0.1"
 description = "A simple and extendible cli for managing files at the TFBern"
 authors = ["imgajeed <github.staging362@passmail.net>"]
 license = "GPL-3.0"
@@ -33,6 +36,7 @@ requests = "^2.32.3"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
 pyinstaller = "^6.11.1"
+tomli = "^2.1.0"
 
 [build-system]
 requires = ["poetry-core"]

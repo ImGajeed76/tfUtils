@@ -1,189 +1,265 @@
 # TF Utils
 
-A comprehensive utility tool for streamlining project creation and management across various platforms.
+A user-friendly tool that helps TFBern students manage their projects more efficiently. Perfect for both beginners and advanced users!
 
-## Table of Contents
+## 🎯 What is TF Utils?
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Features](#features)
-- [Development](#development)
-- [Support](#support)
-- [License](#license)
-- [Contributing](#contributing)
+TF Utils is an **unofficial** student-created tool that makes working with TFBern projects easier. It automates common tasks and helps you follow best practices, saving you time and reducing errors.
 
-## Installation
+> 🎓 **Made by Students, for Students**: While this isn't an official TFBern tool, it's designed specifically to help fellow students with their project workflow.
 
-1. Download the latest release from [release page](https://github.com/ImGajeed76/tfUtils/releases).
-2. Create a new folder: `C:\Program Files\tfutils`
-3. Move the downloaded executable file into the newly created folder.
-4. Add the installation directory to your system's PATH:
+## 📦 Installation Guide
 
-- Press `Win + X` and select "System"
-- Click on "Advanced system settings"
-- Click on "Environment Variables"
-- Under "System variables", find and select "Path", then click "Edit"
-- Click "New" and add `C:\Program Files\tfutils`
-- Click "OK" to close all dialogs
+### For Everyone (Quick Install)
+1. Download the installer
+   - Go to our [releases page](https://github.com/ImGajeed76/tfUtils/releases)
+   - Click on `tfutils_setup_vX.X.X.exe` (latest version)
+   - Save it to your computer
 
-## Usage
+2. Install the program
+   - Double-click the downloaded installer
+   - Click "Next" to begin installation
+   - When asked, check "Add to PATH" ✅
+   - Click "Install"
+   - Click "Finish"
 
-### Creating a new uVision project
+3. Start using TF Utils
+   - Restart any open command prompts or terminals
+   - That's it! You're ready to go! 🎉
 
-1. Create a new folder for your project (e.g., "test").
-2. Open the folder in Windows Explorer.
-3. Click on the address bar at the top and type `utils`. A command prompt window will open.
-4. The prompt will ask if you are in the correct path. Ensure the displayed path is where you want your uVision project.
-5. Type 'y' and press Enter to confirm.
-6. A menu will appear with several options:
+## 🚀 How to Use TF Utils
 
+### Basic Usage (For Everyone)
+
+1. **Start TF Utils**
+   - Open your project folder in File Explorer
+   - Click in the address bar at the top
+   - Type `tfutils` and press Enter
+
+2. **Navigate the Menu**
+   - Use ↑ and ↓ arrow keys to move
+   - Press Enter to select an option
+   - Or just press the number shown next to your choice
+
+### Example Menu
 ```
-╭───────────────────────── Wähle eine Aktion: ──────────────────────────╮
-│ Use arrow keys to navigate, Enter to select, or press the number key. │
-│                                                                       │
-│    1. Altium                                                          │
-│    2. Obsidian                                                        │
-│    3. Office                                                          │
-│    4. Projekt                                                         │
-│ -> 5. uVision                                                         │
-╰───────────────────────────────────────────────────────────────────────╯
+╭───────────────────────── Choose an Action: ──────────────────────────╮
+│ Use arrow keys to navigate, Enter to select, or press the number key │
+│                                                                      │
+│    1. Altium Project                                                 │
+│    2. Obsidian Notes                                                 │
+│    3. Office Documents                                               │
+│    4. New Project                                                    │
+│ -> 5. µVision Project                                                │
+╰──────────────────────────────────────────────────────────────────────╯
 ```
 
-7. Select "uVision" using arrow keys or by pressing '5'.
-8. Choose "neues uVision projekt" (new uVision project).
-9. Select a microcontroller template (e.g., "C8051F320").
-10. Name your project (e.g., "MyProject"). Avoid using spaces in the name.
-11. Choose whether to create a new folder named after your project inside the current directory.
-12. Press Enter to select the default version number.
-13. Optionally, choose whether to open your uVision project in CLion. This will copy the necessary files to the
-    directory for easier setup.
+### Features
 
-Your new uVision project is now created and ready to use!
+- **Project Templates**: Quickly create new projects with the correct structure
+- **File Management**: Automatically organize your project files
+- **Tool Integration**: Easy setup for Altium, Obsidian, Office, and µVision projects
+- **Smart Prompts**: Clear instructions guide you through each step
 
-## Features
+## 🔒 Security & Trust
 
-### Project Creation
+We take security seriously:
 
-- Create new Altium projects
-- Create new uVision projects
-- Set up Obsidian vaults (with pre-installed add-ons like Excalidraw)
-- Generate general project structures
+- ✅ No admin rights needed
+- ✅ Open source - you can see all the code
+- ✅ Clear build process
+- ✅ SHA256 checksums provided
+- ✅ Built by students like you
 
-### Project Management
+## 🛠️ Developer Documentation
 
-- Manage Altium projects:
-    - Rename projects
-    - Reversion projects
-- Create schema and layout checklists
-- Set up default project structures with necessary components
-
-## Development
+> This section is for developers who want to contribute or modify the code.
 
 ### Prerequisites
-
 - Python 3.10 - 3.12
-- Poetry (for dependency management)
+- Poetry (package manager)
 - Git
+- Inno Setup (for building installers)
 
-The project uses the following code quality tools:
+### Development Setup & Workflow
 
-- black (code formatting)
-- isort (import sorting)
-- ruff (linting)
-- pre-commit (automated checks)
-
-Dependencies:
-
-- rich
-- tqdm
-
-Development dependencies:
-
-- pre-commit
-- pyinstaller
-
-### Setting up the development environment
-
-1. Clone the repository:
-
+1. **Initial Setup**
 ```bash
+# Clone and setup project
 git clone https://github.com/ImGajeed76/tfUtils.git
 cd tfUtils
-```
-
-2. Install dependencies using Poetry:
-
-```bash
 poetry install
-```
-
-3. Set up pre-commit hooks:
-
-```bash
 poetry run pre-commit install
 ```
 
-### Building the project
+2. **Development Process**
+```bash
+# Run the program locally
+poetry run python main.py
 
-To build the project, run:
+# Test your changes as you develop
+```
 
+3. **Contributing Changes**
+```bash
+# Create a new branch
+git checkout -b feature/my-new-feature
+
+# Make your changes...
+
+# Run pre-commit checks (REQUIRED)
+poetry run pre-commit run --all-files
+
+# Commit and push
+git add .
+git commit -m "feat: add my new feature"
+git push origin feature/my-new-feature
+```
+
+4. **Pull Request Process**
+- Create a Pull Request on GitHub
+- Wait for code review
+- Make requested changes if needed
+- Once approved, your changes will be merged!
+
+### Project Structure
+```
+tfUtils/
+├── src/
+│   ├── interfaces/    # Command implementations
+│   │   └── ...
+│   └── lib/          # Core utilities
+│       ├── console.py  # User interaction
+│       ├── utils.py    # File operations
+│       └── paths.py    # Path handling
+├── build.py          # Build script
+├── main.py          # Entry point
+└── pyproject.toml   # Project config
+```
+
+### Creating New Features
+
+TF Utils uses a simple plugin system based on Python decorators. Any function with the `@interface` decorator in the `interfaces/` directory becomes available in the menu automatically!
+
+#### Examples
+
+1. **Simple Command**
+```python
+# interfaces/hello_world.py
+from src.lib.console import ask_input
+from src.interfaces import interface
+
+@interface(name="Say Hello")
+def say_hello():
+    """A simple greeting command."""
+    name = ask_input("What's your name?", "Enter your name to get a greeting")
+    print(f"Hello {name}!")
+```
+
+2. **Subcategory Command**
+```python
+# interfaces/Office/create_document.py
+from src.lib.console import ask_select, ask_input
+from src.lib.utils import safe_copy_file
+from src.interfaces import interface
+
+@interface(name="Create Document")
+def create_doc():
+    """Create a new Office document from template."""
+    # Show template selection
+    templates = ["Letter", "Report", "Presentation"]
+    choice = ask_select("Choose template:", templates)
+
+    # Get document name
+    doc_name = ask_input(
+        "Document name:",
+        "Enter name for your new document",
+        placeholder="My Document"
+    )
+
+    # Copy template
+    template_path = f"templates/office/{templates[choice].lower()}.docx"
+    safe_copy_file(template_path, f"{doc_name}.docx")
+```
+
+The file structure determines the menu structure:
+```
+interfaces/
+├── hello_world.py          → Main menu: "Say Hello"
+└── Office/                 → Creates "Office" submenu
+    └── create_document.py  → Submenu item: "Create Document"
+```
+
+### Key Components
+
+#### Console Utilities (`console.py`)
+```python
+def ask_select(prompt: str, choices: list[str], default: int = 0) -> int:
+    """Display an interactive selection menu."""
+
+def ask_input(question: str, description: str, placeholder: str = "",
+              regex: str = None, error_message: str = None) -> str:
+    """Display an interactive text input prompt with validation."""
+
+def ask_yes_no(question: str, description: str = "") -> bool:
+    """Display an interactive Yes/No selection menu."""
+```
+
+#### File Operations (`utils.py`)
+```python
+def safe_copy_file(source: PathLike, destination: PathLike) -> None:
+    """Safely copy a file with error handling."""
+
+def safe_copy_directory(source: PathLike, destination: PathLike) -> None:
+    """Safely copy a directory with error handling."""
+
+def get_copied_files(directory: PathLike) -> List[Path]:
+    """Get list of files in a directory."""
+
+def safe_download(url: str, destination: PathLike) -> Tuple[Optional[Path], Optional[str]]:
+    """Safely download a file with error handling."""
+```
+
+#### Path Handling (`paths.py`)
+```python
+class NetworkPath:
+    """Handle Windows network paths with validation."""
+```
+
+#### Interface Decorator
+```python
+@interface(name: str, activate: bool = True)
+"""Mark and name interface functions for the menu system."""
+```
+
+### Code Quality
+
+We use these tools to maintain code quality:
+- `black` for formatting
+- `isort` for import sorting
+- `ruff` for linting
+- `pre-commit` for git hooks
+- `pytest` for testing
+
+### Building from Source
 ```bash
 poetry run python build.py
+# Creates installer in dist/tfutils_setup_v[version].exe
 ```
 
-### Before committing
+## 💬 Support & Community
 
-Always run pre-commit before pushing your changes:
+Need help? We're here:
+- 📝 [Report Issues](https://github.com/ImGajeed76/tfUtils/issues)
+- 💡 [Join Discussions](https://github.com/ImGajeed76/tfUtils/discussions)
+- 📧 Contact: [ImGajeed76](mailto:github.staging362@passmail.net)
 
-```bash
-poetry run pre-commit run --all-files
-```
+## 📄 License
 
-### Adding Custom Functions
+TF Utils is licensed under the GNU GPL v3.0. This means you can:
+- ✅ Use the software for any purpose
+- ✅ Study how it works and modify it
+- ✅ Share the software with others
+- ✅ Share your modifications
 
-You can extend TF Utils with your own functions. Here's how:
-
-1. Create a new file in the `src/interfaces` folder or any subfolder. The subfolder structure defines the TUI menu
-   hierarchy.
-   For example:
-    - `src/interfaces/myInterface/my_app.py` will create a menu option "myInterface" with your function inside
-    - `src/interfaces/my_app.py` will put your function in the root menu
-
-2. In your new file (e.g., `my_app.py`), create a function with the `@interface` decorator:
-
-```python
-from src.lib.interface import interface
-
-
-@interface("My App")  # "My App" is what users will see in the menu
-def my_app():
-    print("Hello World")
-    input()
-```
-
-3. Run the program to see your new function:
-
-```bash
-poetry run python main.py
-```
-
-Your function "My App" will now appear in the TUI menu structure based on its file location.
-
-## Support
-
-If you encounter any issues or have questions, please [open an issue](https://github.com/ImGajeed76/tfUtils/issues) on
-my GitHub page or send an email to my GitHub email address.
-
-## License
-
-TF Utils is licensed under the GNU General Public License v3.0 (GPL-3.0).
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
-version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program. If not,
-see <https://www.gnu.org/licenses/>.
+[Full License Text](LICENSE)

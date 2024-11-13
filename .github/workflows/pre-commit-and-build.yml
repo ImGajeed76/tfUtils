@@ -20,7 +20,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install pre-commit
         run: |
@@ -38,21 +39,47 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+          refreshenv
+
+      - name: Install poetry
         run: |
           python -m pip install --upgrade pip
           pip install poetry
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Get poetry cache dir
+        id: poetry-cache
+        run: |
+          echo "dir=$(poetry config cache-dir)" >> $env:GITHUB_OUTPUT
+
+      - name: Cache poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.poetry-cache.outputs.dir }}
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
       - name: Build executable
-        run: |
-          poetry install
-          poetry run python build.py
+        run: poetry run python build.py
+        env:
+          PYTHONOPTIMIZE: 2
 
       - name: Get current datetime
         id: datetime
@@ -63,7 +90,10 @@ jobs:
       - name: Create pre-release
         uses: softprops/action-gh-release@v1
         with:
-          files: output/utils.exe
+          files: |
+            dist/tfutils_setup_v*.exe
+            dist/tfutils/verification.json
+            dist/tfutils/SHA256SUMS
           prerelease: true
           name: "Development Build ${{ steps.datetime.outputs.datetime }}"
           tag_name: "dev-${{ steps.datetime.outputs.datetime }}-${{ github.sha }}"
@@ -78,27 +108,67 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+          refreshenv
+
+      - name: Install poetry
         run: |
           python -m pip install --upgrade pip
           pip install poetry
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Get poetry cache dir
+        id: poetry-cache
+        run: |
+          echo "dir=$(poetry config cache-dir)" >> $env:GITHUB_OUTPUT
+
+      - name: Cache poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.poetry-cache.outputs.dir }}
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
       - name: Build executable
-        run: |
-          poetry install
-          poetry run python build.py
+        run: poetry run python build.py
+        env:
+          PYTHONOPTIMIZE: 2
 
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: output/utils.exe
+          files: |
+            dist/tfutils_setup_v*.exe
+            dist/tfutils/verification.json
+            dist/tfutils/SHA256SUMS
           name: "Release ${{ github.ref_name }}"
-          body: "Release ${{ github.ref_name }}"
+          body: |
+            Release ${{ github.ref_name }}
+
+            ## Verification
+            SHA256 checksums are provided in the SHA256SUMS file.
+            Additional verification information can be found in verification.json.
+
+            ## Installation
+            1. Download tfutils_setup_v*.exe
+            2. Run the installer
+            3. Choose "Add to PATH" during installation
+            4. Restart any open terminals
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
