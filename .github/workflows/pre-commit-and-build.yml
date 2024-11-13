@@ -50,8 +50,19 @@ jobs:
 
       - name: Install Inno Setup
         run: |
+          # Try to install Inno Setup
           choco install innosetup -y
-          refreshenv
+
+          # Proper PowerShell environment refresh
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          Update-SessionEnvironment
+
+          # Verify Inno Setup is available
+          if (-not (Get-Command "iscc.exe" -ErrorAction SilentlyContinue)) {
+            Write-Error "Inno Setup Compiler (iscc.exe) not found in PATH"
+            exit 1
+          }
+        shell: pwsh
 
       - name: Install poetry
         run: |
@@ -119,8 +130,19 @@ jobs:
 
       - name: Install Inno Setup
         run: |
+          # Try to install Inno Setup
           choco install innosetup -y
-          refreshenv
+
+          # Proper PowerShell environment refresh
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          Update-SessionEnvironment
+
+          # Verify Inno Setup is available
+          if (-not (Get-Command "iscc.exe" -ErrorAction SilentlyContinue)) {
+            Write-Error "Inno Setup Compiler (iscc.exe) not found in PATH"
+            exit 1
+          }
+        shell: pwsh
 
       - name: Install poetry
         run: |
