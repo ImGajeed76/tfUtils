@@ -23,7 +23,7 @@ def install_cubemx():
     # this temporary directory will be deleted automatically
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create the full path for the executable in the temp directory
-        temp_installer_path = Path(temp_dir) / "SetupSTM32CubeMX-6.2.1-Win.exe"
+        temp_installer_path = Path(temp_dir) / "SetupSTM32CubeMX.exe"
 
         # Copy the installer to temporary location
         safe_copy_file(CUBEMX_INSTALLER_DIR, temp_installer_path)
@@ -31,8 +31,6 @@ def install_cubemx():
         console.print(
             f"[green]STM32CubeMX Installer ausführen: {temp_installer_path}[/green]"
         )
-
         # Run the executable directly
         subprocess.run(["cmd", "/c", str(temp_installer_path)])
-
         console.print("[green]STM32CubeMX wurde erfolgreich instaliert![/green]")
