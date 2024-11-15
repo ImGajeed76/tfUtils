@@ -1,0 +1,34 @@
+ListView {
+    margin: 1;
+}
+
+ListItem {
+    padding: 1;
+}
+
+#option_info {
+    background: $panel;
+    color: $text;
+    border: $secondary tall;
+    padding: 1;
+    padding-top: 0;
+    width: 50%;
+    height: 100%;
+    margin: 1;
+    content-align: left top;
+}
+
+#path {
+    width: 100%;
+    margin: 1;
+    margin-bottom: 0;
+}
+
+#interface {
+    width: 100%;
+    height: 95%;
+    margin: 1;
+    padding: 1;
+    overflow-y: auto;
+    background: $panel;
+}

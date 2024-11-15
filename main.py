@@ -1,189 +1,226 @@
-"""
-Interface Selection Tool
-This script provides a command-line interface for selecting and executing
-interface functions from a specified directory structure.
-"""
-
-import importlib
-import inspect
-import os
 import sys
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, TypedDict
+from typing import Callable, Iterable
 
-from rich.prompt import Prompt
-
-from src.lib.console import ask_select
-from src.lib.utils import console
-
-
-# Type definitions
-class InterfaceFunction(TypedDict):
-    name: str
-    function: Callable
-    module: str
+from textual import on
+from textual.app import App, ComposeResult, SystemCommand
+from textual.containers import Horizontal
+from textual.screen import Screen
+from textual.widgets import Header, Label, ListItem, ListView, Static
 
 
-# Constants
-MAIN_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
-INTERFACES_BASE_PATH = MAIN_DIR / "src" / "interfaces"
+class InterfaceTree:
+    children = []
+    path = ""
 
-# Add main directory to Python path
-sys.path.insert(0, str(MAIN_DIR))
-
-
-def scan_for_interface_functions(module_name: str) -> List[InterfaceFunction]:
-    """
-    Scan a module for interface functions with specific attributes.
-
-    Args:
-        module_name: The name of the module to scan
-
-    Returns:
-        List of dictionaries containing interface function information
-    """
-    try:
-        module = importlib.import_module(module_name)
-        all_functions = inspect.getmembers(module, inspect.isfunction)
-
-        interface_functions = [
-            {"name": func._NAME, "function": func, "module": module_name}
-            for name, func in all_functions
-            if hasattr(func, "_IS_INTERFACE")
-            and func._IS_INTERFACE
-            and hasattr(func, "_NAME")
-        ]
-
-        return interface_functions
-    except Exception:
-        return []
-
-
-def scan_directory(base_path: Path) -> Dict[str, List[InterfaceFunction]]:
-    """
-    Recursively scan a directory for Python files containing interface functions.
-
-    Args:
-        base_path: The base directory path to scan
-
-    Returns:
-        Dictionary mapping directory paths to lists of interface functions
-    """
-    tree = {}
-
-    for item in base_path.rglob("*.py"):
-        relative_path = item.relative_to(INTERFACES_BASE_PATH)
-        module_name = ".".join(
-            ("src", "interfaces") + relative_path.with_suffix("").parts
-        )
-
-        interface_funcs = scan_for_interface_functions(module_name)
-        if interface_funcs:
-            folder_path = str(relative_path.parent).replace("\\", "/")
-            folder_path = "" if folder_path == "." else folder_path
-
-            if folder_path not in tree:
-                tree[folder_path] = []
-            tree[folder_path].extend(interface_funcs)
-
-    return tree
-
-
-def select_function(tree: Dict[str, List[InterfaceFunction]]) -> Optional[Callable]:
-    """
-    Interactive function selection interface.
-
-    Args:
-        tree: Dictionary containing the interface function tree
-
-    Returns:
-        Selected function or None if no selection was made
-    """
-    current_path = ""
-
-    while True:
-        choices = []
-        functions = []
-        subdirectories = set()
-
-        # Get functions for current path
-        if current_path in tree:
-            functions = tree[current_path]
-            choices.extend([func["name"] for func in functions])
-
-        # Get subdirectories
-        for path in tree.keys():
-            parts = path.split("/")
-            if current_path == "" and len(parts) > 0:
-                subdirectories.add(parts[0])
-            elif path.startswith(current_path + "/"):
-                next_level = parts[len(current_path.split("/")) if current_path else 0]
-                if next_level:
-                    subdirectories.add(next_level)
-
-        # Clean up and sort choices
-        choices.extend(sorted(subdirectories))
-        choices = [choice for choice in choices if choice]
-
-        # Add parent directory option
-        if current_path:
-            choices.insert(0, "..")
-
-        if not choices:
-            console.print(f"No actions available in {current_path or 'Root'}")
-            return None
-
-        # Present selection prompt
-        prompt = (
-            f"Wähle eine Aktion{' (' + current_path + ')' if current_path else ''}:"
-        )
-        selection = ask_select(prompt, choices)
-
-        # Handle selection
-        if selection == 0 and current_path:  # Parent directory
-            current_path = "/".join(current_path.split("/")[:-1])
-        elif selection < len(functions) + (1 if current_path else 0):  # Function
-            return functions[selection - (1 if current_path else 0)]["function"]
-        elif selection < len(choices):  # Subdirectory
-            selected_dir = choices[selection]
-            current_path = f"{current_path}/{selected_dir}".lstrip("/")
-        else:
-            console.print("Invalid selection")
-            return None
-
-
-def main() -> None:
-    """Main execution function."""
-    console.clear()
-    console.print(
-        "[bright_black]Starting the interface selection tool...[/bright_black]"
-    )
-
-    console.print("[bright_black]Startup finished![/bright_black]")
-    console.print(f"Du befindest dich in: [yellow]{Path.cwd()}[/yellow]")
-
-    # Confirm execution
-    continue_execution = (
-        Prompt.ask("Möchtest du fortfahren?", choices=["y", "n"]) == "y"
-    )
-
-    if not continue_execution:
-        sys.exit(0)
-
-    # Scan and execute
-    tree = scan_directory(INTERFACES_BASE_PATH)
-    selected_function = select_function(tree)
-
-    if selected_function:
-        try:
-            console.clear()
-            selected_function()
-        except Exception as e:
-            console.print(
-                f"[red]An error occurred while executing the function: {e}[/red]"
+    def __init__(
+        self,
+        name: str,
+        description: str = "",
+        id: str = "",
+        is_root: bool = False,
+        on_select: Callable[[Static], None] = None,
+        app: "InterfaceViewer" = None,
+    ):
+        self.name = name
+        self.description = description or name
+        self.children = []
+        self.is_root = is_root
+        self.on_select = on_select
+        self.id = id
+        if id == "":
+            self.id = "".join(
+                [c if c.isalnum() else "_" for c in name.lower().replace(" ", "_")]
             )
-    else:
-        console.print("No function selected")
+        self.app = app
+
+    def add_child(self, child: "InterfaceTree"):
+        self.children.append(child)
+
+    def set_app(self, app: App):
+        self.app = app
+        for child in self.children:
+            child.set_app(app)
+
+    def generate_path(self, path: str = ""):
+        if path == "":
+            path = self.id
+        else:
+            path = f"{path}/{self.id}"
+        self.path = path
+        for child in self.children:
+            child.generate_path(path)
+
+    def __on_select_wrapper(self):
+        if self.app is not None and self.on_select is not None:
+            try:
+                self.app.query_one("#interface_viewer").remove()
+            except Exception:
+                pass
+
+            interface = None
+
+            try:
+                interface = self.app.query_one("#interface")
+            except Exception:
+                pass
+
+            if interface is not None:
+                interface.query_children("*").remove()
+            else:
+                interface = Static(id="interface")
+
+            interface.refresh()
+
+            self.app.path = self.path
+            self.app.update_path()
+            self.app.mount(interface)
+            self.on_select(interface)
+
+    def __str__(self):
+        return f"{self.name} ({len(self.children)} children)"
+
+    def __repr__(self):
+        return f"InterfaceTree({self.name!r}, {len(self.children)!r})"
+
+    def get_textual(self, path: str = "") -> Iterable[ListItem]:
+        path_parts = path.split("/")
+        if path_parts[0] == self.id:
+            path_parts = path_parts[1:]
+            if len(path_parts) == 0:
+                if not self.is_root:
+                    yield ListItem(
+                        Label("← Back"), name="Go one section back", id="back"
+                    )
+
+                if len(self.children) == 0:
+                    self.__on_select_wrapper()
+                else:
+                    for child in self.children:
+                        if child.on_select is not None or len(child.children) > 0:
+                            yield ListItem(
+                                Label(child.name), name=child.description, id=child.id
+                            )
+            else:
+                for child in self.children:
+                    if child.id == path_parts[0]:
+                        yield from child.get_textual("/".join(path_parts))
+                        break
+
+    def register_system_commands(self) -> Iterable[SystemCommand]:
+        if len(self.children) == 0:
+            yield SystemCommand(self.name, self.description, self.__on_select_wrapper)
+
+        for child in self.children:
+            yield from child.register_system_commands()
+
+
+def example_function(container: Static):
+    container.mount(Label("Hello, World!"))
+
+
+example_tree = InterfaceTree("root", is_root=True)
+sub_one = InterfaceTree(
+    "Sub One", "This is the first sub tree. \nIt has three children."
+)
+sub_two = InterfaceTree("Sub Two")
+sub_three = InterfaceTree("Sub Three")
+sub_one.add_child(InterfaceTree("Sub One A", on_select=example_function))
+sub_one.add_child(InterfaceTree("Sub One B", on_select=example_function))
+sub_one.add_child(InterfaceTree("Sub One C", on_select=example_function))
+sub_two.add_child(InterfaceTree("Sub Two A", on_select=example_function))
+sub_two.add_child(InterfaceTree("Sub Two B", on_select=example_function))
+sub_two.add_child(InterfaceTree("Sub Two C", on_select=example_function))
+sub_three.add_child(InterfaceTree("Sub Three A", on_select=example_function))
+sub_three.add_child(InterfaceTree("Sub Three B", on_select=example_function))
+sub_three.add_child(InterfaceTree("Sub Three C", on_select=example_function))
+example_tree.add_child(sub_one)
+example_tree.add_child(sub_two)
+example_tree.add_child(sub_three)
+
+
+class InterfaceViewer(App):
+    TITLE = "TF Utils"
+    CSS_PATH = "src/tcss/interface_viewer.tcss"
+
+    path = "root"
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Label(id="path")
+
+    async def show_main(self):
+        try:
+            await self.query_one("#interface", expect_type=Static).remove()
+        except Exception:
+            pass
+
+        interface_viewer = None
+
+        try:
+            interface_viewer = self.query_one(
+                "#interface_viewer", expect_type=Horizontal
+            )
+        except Exception:
+            pass
+
+        if interface_viewer is None:
+            await self.mount(
+                Horizontal(
+                    ListView(
+                        id="interface_tree",
+                        initial_index=0,
+                    ),
+                    Label("Hello, World!", id="option_info"),
+                    id="interface_viewer",
+                )
+            )
+
+        self.path = "root"
+        await self.update_selector()
+
+    @on(ListView.Highlighted)
+    def update_label(self, event: ListView.Highlighted):
+        if event.item is None:
+            return
+        self.query_one("#option_info", expect_type=Label).update(str(event.item.name))
+
+    @on(ListView.Selected)
+    async def select_option(self, event: ListView.Selected):
+        if event.item is None or event.item.name is None:
+            return
+
+        if event.item.id == "back":
+            self.path = "/".join(self.path.split("/")[:-1])
+        else:
+            self.path = f"{self.path}/{event.item.id}"
+
+        await self.update_selector()
+
+    async def update_selector(self):
+        self.update_path()
+        interface_tree = self.query_one("#interface_tree", expect_type=ListView)
+        await interface_tree.clear()
+        await interface_tree.extend(example_tree.get_textual(self.path))
+        interface_tree.index = 0
+        interface_tree.refresh()
+
+    def update_path(self):
+        self.query_one("#path", expect_type=Label).update(self.path)
+
+    async def on_mount(self) -> None:
+        example_tree.set_app(self)
+        example_tree.generate_path()
+        await self.show_main()
+
+    def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
+        yield SystemCommand("Home", "Return to the main menu", self.show_main)
+        yield from example_tree.register_system_commands()
+
+
+def main():
+    app = InterfaceViewer()
+    app.run()
+    sys.exit(app.return_code or 0)
 
 
 if __name__ == "__main__":
