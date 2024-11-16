@@ -6,7 +6,7 @@ ListItem {
     padding: 1;
 }
 
-#option_info {
+#reference_info {
     background: $panel;
     color: $text;
     border: $secondary tall;
