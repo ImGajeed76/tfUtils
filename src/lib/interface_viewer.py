@@ -4,8 +4,9 @@ from typing import Callable, Coroutine, Iterable, List, Union
 from textual import on
 from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Container, Horizontal
+from textual.css.query import NoMatches
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Label, ListItem, ListView
+from textual.widgets import Footer, Header, Label, ListItem, ListView, Markdown
 
 
 class InterfacePath:
@@ -107,6 +108,9 @@ class InterfaceViewer(App):
         yield Footer()
 
     async def mount_reference_viewer(self):
+        if len(self.screen_stack) > 1:
+            await self.pop_screen()
+
         self.path = InterfacePath("root")
         await self._update_path()
         view_port = self.query_one("#view_port", Container)
@@ -114,7 +118,7 @@ class InterfaceViewer(App):
         await view_port.mount(
             Horizontal(
                 ListView(id="reference_list", initial_index=0),
-                Label("Select an interface to view info", id="reference_info"),
+                Markdown("Select an interface to view info", id="reference_info"),
                 id="reference_viewer",
             )
         )
@@ -160,9 +164,12 @@ class InterfaceViewer(App):
     def update_info(self, event: ListView.Highlighted):
         if event.item is None:
             return
-        self.query_one("#reference_info", expect_type=Label).update(
-            str(event.item.name)
-        )
+        try:
+            self.query_one("#reference_info", expect_type=Markdown).update(
+                str(event.item.name)
+            )
+        except NoMatches:
+            pass
 
     @on(ListView.Selected)
     async def select_reference(self, event: ListView.Selected):
@@ -186,14 +193,30 @@ class InterfaceViewer(App):
         await self._update_reference_viewer()
 
     async def _call_reference_callback(self, reference: InterfaceReference):
-        await self.mount_reference()
-        interface_container = self.query_one("#interface", Container)
-        await reference.call_back(interface_container)
+        await self.mount_reference_viewer()
+        self.path = reference.path
+        await self._update_path()
 
-    async def _call_reference_callback_by_id(self, reference_id: str):
+        async def mount():
+            await self.mount_reference()
+            interface_container = self.query_one("#interface", Container)
+            await reference.call_back(interface_container)
+
+        self.run_worker(mount)
+
+    async def _open_reference_by_id(self, reference_id: str):
+        await self.mount_reference_viewer()
         reference = self._get_reference_by_id(reference_id)
         if reference is not None:
-            await self._call_reference_callback(reference)
+            self.path = reference.path.parent()
+            await self._update_reference_viewer()
+            list_view = self.query_one("#reference_list", ListView)
+            children = list_view.children
+            for index, child in enumerate(children):
+                if child.id == reference_id:
+                    list_view.index = index
+                    list_view.refresh()
+                    list_view.focus()
 
     def _get_reference_by_id(
         self, reference_id: str
@@ -206,6 +229,13 @@ class InterfaceViewer(App):
     async def on_mount(self):
         await self.mount_reference_viewer()
 
+    @staticmethod
+    def description_to_one_line(description: str) -> str:
+        lines = description.split("\n")
+        if len(lines) > 1:
+            return lines[0] + "..."
+        return description
+
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         yield SystemCommand(
             "Home", "Return to the main menu", self.mount_reference_viewer
@@ -215,10 +245,8 @@ class InterfaceViewer(App):
             if reference.call_back is not None:
                 yield SystemCommand(
                     reference.path.original_path,
-                    reference.description,
-                    lambda ref=reference: self._call_reference_callback_by_id(
-                        str(ref.path)
-                    ),
+                    self.description_to_one_line(reference.description),
+                    lambda ref=reference: self._open_reference_by_id(str(ref.path)),
                 )
 
 

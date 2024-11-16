@@ -132,8 +132,8 @@ def create_folder_references(folder_path: Path) -> List[InterfaceReference]:
 
     for folder in folder_path.glob("**/*"):
         if folder.is_dir() and folder.name != "__pycache__":
-            info_file = folder / "info.txt"
-            info_text = "Folder (no info.txt)"
+            info_file = folder / "info.md"
+            info_text = "Folder (no info.md)"
             if info_file.exists():
                 with info_file.open("r") as f:
                     info_text = f.read().strip()
