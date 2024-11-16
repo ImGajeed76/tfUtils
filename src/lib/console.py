@@ -1,6 +1,5 @@
 """
-Terminal User Interface (TUI) input module providing interactive selection menus
-and text input functionality with rich formatting.
+Textual Wrappers for common console prompts.
 """
 
 import re
