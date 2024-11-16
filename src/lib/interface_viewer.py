@@ -91,9 +91,13 @@ class InterfaceViewer(App):
 
     CSS_PATH = "../tcss/interface_viewer.tcss"
 
+    BINDINGS = [
+        ("^c", "quit", "quit"),
+    ]
+
     def __init__(self, title: str, references: List[InterfaceReference]):
-        super().__init__()
         self.TITLE = title
+        super().__init__()
         self.references = references
 
     def compose(self) -> ComposeResult:
