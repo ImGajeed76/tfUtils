@@ -2,6 +2,8 @@ import shutil
 import zipfile
 from pathlib import Path
 
+from textual.containers import Container
+
 from src.lib.interface import interface
 from src.lib.paths import NetworkPath
 from src.lib.utils import console, safe_copy_file
@@ -9,40 +11,40 @@ from src.lib.utils import console, safe_copy_file
 OFFICE_PATH = NetworkPath(r"T:\E\LIVE\02_Vorlagen\01_Office")
 
 
-@interface("Systembeschreibung erstellen", activate=OFFICE_PATH.is_valid)
-def create_new_system_description():
+@interface("Systembeschreibung erstellen", activate=OFFICE_PATH.exists)
+async def create_new_system_description(container: Container):
     sys_files = list(OFFICE_PATH.glob("Systembeschreibung_Vorlage_v*.dotx"))
     sys_files.sort()
 
     if len(sys_files) == 0:
-        console.print("[red]No Systembeschreibung file found[/red]")
+        await console.print(container, "[red]No Systembeschreibung file found[/red]")
         return
 
     file = sys_files[-1]
 
     current_dir = Path().cwd()
-    new_file = current_dir / "Systembeschreibung.dotx"
-    safe_copy_file(file, new_file)
+    new_file = current_dir / "Systembeschreibung.docx"
+    await safe_copy_file(container, file, new_file)
 
-    console.print("[green]Systembeschreibung file copied successfully![/green]")
+    await console.print(
+        container, "[green]Systembeschreibung file copied successfully![/green]"
+    )
 
 
 def systembeschreibung_exists() -> bool:
-    sys_files = list(Path().cwd().glob("Systembeschreibung*.dotx"))
+    sys_files = list(Path().cwd().glob("Systembeschreibung*.docx"))
     sys_files.sort()
 
     return len(sys_files) > 0
 
 
-@interface(
-    "Systembeschreibung Bilder exportieren", activate=systembeschreibung_exists()
-)
-def export_system_description_images():
-    sys_files = list(Path().cwd().glob("Systembeschreibung*.dotx"))
+@interface("Systembeschreibung Bilder exportieren", activate=systembeschreibung_exists)
+async def export_system_description_images(container: Container):
+    sys_files = list(Path().cwd().glob("Systembeschreibung*.docx"))
     sys_files.sort()
 
     if len(sys_files) == 0:
-        console.print("[red]No Systembeschreibung file found[/red]")
+        await console.print(container, "[red]No Systembeschreibung file found[/red]")
         return
 
     docx = sys_files[-1]
@@ -78,4 +80,6 @@ def export_system_description_images():
     if temp_word_folder.exists():
         shutil.rmtree(temp_word_folder)
 
-    console.print(f"[green]Images exported successfully to {target_dir}[/green]")
+    await console.print(
+        console, f"[green]Images exported successfully to {target_dir}[/green]"
+    )

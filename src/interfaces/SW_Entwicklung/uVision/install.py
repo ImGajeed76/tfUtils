@@ -1,7 +1,10 @@
+import asyncio
 import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
+
+from textual.containers import Container
 
 from src.lib.interface import interface
 from src.lib.paths import NetworkPath
@@ -11,13 +14,13 @@ UVISION_INSTALLER_DIR = NetworkPath(
     r"T:\E\PROGRAMME\01_SW-Entwicklung\Keil_uV5_Developement-Package\Keil_uV5_Developement-Package.zip"
 )
 
-print(UVISION_INSTALLER_DIR)
 
-
-@interface("uVision Installieren")
-def install_uvision():
+@interface("uVision Installieren", UVISION_INSTALLER_DIR.exists)
+async def install_uvision(container: Container):
     if not UVISION_INSTALLER_DIR:
-        console.print("[red]Keinen uVision Instalations Ortner gefunden![/red]")
+        await console.print(
+            container, "[red]Keinen uVision Instalations Ortner gefunden![/red]"
+        )
         return
 
     # create a temporary directory and copy the installer file there
@@ -25,7 +28,7 @@ def install_uvision():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_installer_zip_path = Path(temp_dir) / "uvison.zip"
         temp_installer_path = Path(temp_dir) / "uvison"
-        safe_copy_file(UVISION_INSTALLER_DIR, temp_installer_zip_path)
+        await safe_copy_file(container, UVISION_INSTALLER_DIR, temp_installer_zip_path)
 
         with zipfile.ZipFile(temp_installer_zip_path, "r") as zip_ref:
             zip_ref.extractall(temp_installer_path)
@@ -36,6 +39,15 @@ def install_uvision():
             / "uV5_Installation.bat"
         )
 
-        console.print(f"[green]uVision Installer ausführen: {installer_path}[/green]")
+        await console.print(
+            container, f"[green]uVision Installer ausführen: {installer_path}[/green]"
+        )
+
+        container.refresh()
+        await asyncio.sleep(1)
+
         subprocess.run(str(installer_path), shell=True, cwd=installer_path.parent)
-        console.print("[green]uVision wurde erfolgreich instaliert![/green]")
+
+        await console.print(
+            container, "[green]uVision wurde erfolgreich instaliert![/green]"
+        )

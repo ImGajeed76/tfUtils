@@ -1,6 +1,9 @@
+import asyncio
 import subprocess
 import tempfile
 from pathlib import Path
+
+from textual.containers import Container
 
 from src.lib.interface import interface
 from src.lib.paths import NetworkPath
@@ -19,22 +22,29 @@ def get_installer_path():
     return installer_files[-1] if installer_files else None
 
 
-@interface("Altium Installieren")
-def install_altium():
+@interface("Altium Installieren", ALTIUM_INSTALLER_PATH.exists)
+async def install_altium(container: Container):
     installer_path = get_installer_path()
 
     if not installer_path:
-        console.print("[red]No Altium Designer installer found![/red]")
+        await console.print(container, "[red]No Altium Designer installer found![/red]")
         return
 
     # create a temporary directory and copy the installer file there
     # this temporary directory will be deleted automatically
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_installer_path = Path(temp_dir) / installer_path.name
-        safe_copy_file(installer_path, temp_installer_path)
+        await safe_copy_file(container, installer_path, temp_installer_path)
 
-        console.print(
-            f"[green]Running Altium Designer installer: {temp_installer_path}[/green]"
+        await console.print(
+            container,
+            f"[green]Running Altium Designer installer: {temp_installer_path}[/green]",
         )
+
+        container.refresh()
+        await asyncio.sleep(1)
+
         subprocess.run(["cmd", "/c", str(temp_installer_path)])
-        console.print("[green]Altium Designer installed successfully![/green]")
+        await console.print(
+            container, "[green]Altium Designer installed successfully![/green]"
+        )
