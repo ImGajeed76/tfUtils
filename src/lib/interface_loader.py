@@ -118,34 +118,43 @@ def create_interface_references(
     ]
 
 
-def create_folder_references(folder_path: Path) -> List[InterfaceReference]:
+def create_folder_references(
+    interface_infos: List[InterfaceInfo],
+    interface_folder_path: Path,
+) -> List[InterfaceReference]:
     """
     Converts folders to InterfaceReference objects.
 
     Args:
-        folder_path: Path to the folder
+        interface_infos: List of InterfaceInfo objects
+        interface_folder_path: Path to the folder containing interface files
 
     Returns:
         List of InterfaceReference objects
     """
     references = []
 
-    for folder in folder_path.glob("**/*"):
-        if folder.is_dir() and folder.name != "__pycache__":
-            info_file = folder / "info.md"
-            info_text = "Folder (no info.md)"
-            if info_file.exists():
-                with info_file.open("r") as f:
-                    info_text = f.read().strip()
+    interface_paths = [interface_info.path for interface_info in interface_infos]
+    folder_paths = set()
+    for interface_path in interface_paths:
+        interface_folder = interface_path.split("/")
+        for i in range(1, len(interface_folder)):
+            folder_paths.add("/".join(interface_folder[:i]))
 
-            relative_folder = folder.relative_to(folder_path).as_posix()
-            references.append(
-                InterfaceReference(
-                    path=f"root/{relative_folder}",
-                    name=folder.name,
-                    description=info_text,
-                    active=True,
-                )
+    for folder_path in folder_paths:
+        info_file = interface_folder_path / folder_path / "info.md"
+        info_text = "Folder (no info.md)"
+        if info_file.exists():
+            with info_file.open("r") as f:
+                info_text = f.read().strip()
+
+        references.append(
+            InterfaceReference(
+                path=f"root/{folder_path}",
+                name=folder_path.split("/")[-1],
+                description=info_text,
+                active=True,
             )
+        )
 
     return references

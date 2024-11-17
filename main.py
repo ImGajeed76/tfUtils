@@ -8,15 +8,16 @@ from src.lib.interface_loader import (
 )
 from src.lib.interface_viewer import InterfaceViewer
 
-interface_folder = Path("src/interfaces/testing")
-src_folder = Path("src")
+root_folder = Path(__file__).parent
+interface_folder = root_folder / Path("src/interfaces")
+src_folder = root_folder / Path("src")
 
 
 def main():
     interfaces = scan_interfaces(interface_folder, src_folder)
 
     references = create_interface_references(interfaces)
-    references.extend(create_folder_references(interface_folder))
+    references.extend(create_folder_references(interfaces, interface_folder))
 
     app = InterfaceViewer("TF Utils", references)
     app.run()
