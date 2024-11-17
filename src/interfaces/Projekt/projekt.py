@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from textual.containers import Container
+
 from src.lib.console import ask_input, ask_yes_no
 from src.lib.interface import interface
 from src.lib.paths import NetworkPath
@@ -11,8 +13,8 @@ DEFAULT_STRUCT_FOLDER = NetworkPath(
 )
 
 
-@interface("Neue Projektstruktur erstellen", activate=DEFAULT_STRUCT_FOLDER.is_valid)
-def create_new_project_structure():
+@interface("Neue Projektstruktur erstellen", activate=DEFAULT_STRUCT_FOLDER.exists)
+async def create_new_project_structure(container: Container):
     from src.interfaces.HW_Entwicklung.Altium.altium import new_altium_project
     from src.interfaces.Office.Checkliste.checkliste import (
         create_pcb_checklist,
@@ -23,8 +25,8 @@ def create_new_project_structure():
         create_new_system_description,
     )
 
-    project_folder_name = ask_input(
-        "Projektordnername",
+    project_folder_name = await ask_input(
+        container,
         "Wie soll der Projektordner heißen?\n"
         "Der Projektname muss das Format 'EXX-YYY-ZZ_Projectname' haben.\n"
         "(ZZ sind zwei grosse Buchstaben)",
@@ -36,22 +38,22 @@ def create_new_project_structure():
     project_dir = base_dir / project_folder_name
 
     if project_dir.exists():
-        console.print("[red]Projektordner existiert bereits![/red]")
+        await console.print(console, "[red]Projektordner existiert bereits![/red]")
         return
 
     project_dir.mkdir()
 
-    safe_copy_directory(DEFAULT_STRUCT_FOLDER, project_dir)
+    await safe_copy_directory(container, DEFAULT_STRUCT_FOLDER, project_dir)
 
-    console.print("[green]Projekt erfolgreich erstellt![/green]")
+    await console.print(container, "[green]Projekt erfolgreich erstellt![/green]")
 
     # ------ SCHEMA LAYOUT ------
-    console.print("-" * 50)
+    await console.print(container, "-" * 50)
 
     sl_dir = project_dir / "Hardware" / "SCH_PCB"
 
-    if ask_yes_no(
-        "Schema Layout erstellen",
+    if await ask_yes_no(
+        container,
         "Möchten Sie ein Schema Layout im neuen Projekt erstellen?",
     ):
         os.chdir(sl_dir)
@@ -60,17 +62,17 @@ def create_new_project_structure():
         if sl_connection.exists():
             sl_connection.unlink()
 
-        console.clear()
-        new_altium_project(project_name, True)
-        console.clear()
+        await new_altium_project(
+            container, default_name=project_name, create_new_dir=True
+        )
 
     # ------ Checklist ------
-    console.print("-" * 50)
+    await console.print(container, "-" * 50)
 
     checklist_dir = project_dir / "Hardware" / "SCH_PCB"
 
-    if ask_yes_no(
-        "Checklisten erstellen", "Möchten Sie Checklisten im neuen Projekt erstellen?"
+    if await ask_yes_no(
+        container, "Möchten Sie Checklisten im neuen Projekt erstellen?"
     ):
         os.chdir(checklist_dir)
 
@@ -78,32 +80,29 @@ def create_new_project_structure():
         if checklist_connection.exists():
             checklist_connection.unlink()
 
-        create_schema_checklist()
-        create_pcb_checklist()
-        console.clear()
+        await create_schema_checklist(container)
+        await create_pcb_checklist(container)
 
     # ------ Obsidian Vault ------
-    console.print("-" * 50)
+    await console.print(container, "-" * 50)
 
     obsidian_dir = project_dir / "Journal"
 
-    if ask_yes_no(
-        "Obsidian Vault erstellen",
+    if await ask_yes_no(
+        container,
         "Möchten Sie einen Obsidian Vault im neuen Projekt erstellen?",
     ):
         os.chdir(obsidian_dir)
 
-        console.clear()
-        create_new_obsidian_vault()
-        console.clear()
+        await create_new_obsidian_vault(container)
 
     # ------ Systembeschreibung ------
-    console.print("-" * 50)
+    await console.print(container, "-" * 50)
 
     sys_desc_dir = project_dir / "Systembeschreibung"
 
-    if ask_yes_no(
-        "Systembeschreibung erstellen",
+    if await ask_yes_no(
+        container,
         "Möchten Sie eine Systembeschreibung im neuen Projekt erstellen?",
     ):
         os.chdir(sys_desc_dir)
@@ -112,5 +111,4 @@ def create_new_project_structure():
         if sys_link.exists():
             sys_link.unlink()
 
-        create_new_system_description()
-        console.clear()
+        await create_new_system_description(container)

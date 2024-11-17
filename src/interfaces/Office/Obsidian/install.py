@@ -1,9 +1,11 @@
+import asyncio
 import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 import requests
+from textual.containers import Container
 
 from src.lib.interface import interface
 from src.lib.utils import console, safe_download
@@ -36,9 +38,14 @@ obsidian_url, obsidian_version = get_latest_obsidian_info()
 
 
 @interface(f"Obsidian Installieren ({obsidian_version or 'unknown'})")
-def install_obsidian():
+async def install_obsidian(container: Container):
+    """
+    Installiere Obsidian mit dem neuesten Installer.
+
+    Dieses Interface lädt den neuesten Obsidian-Installer herunter und führt ihn aus.
+    """
     if not obsidian_url:
-        print("[red]No Obsidian installer found![/red]")
+        console.print(container, "[red]No Obsidian installer found![/red]")
         return
 
     # create a temporary directory and copy the installer file there
@@ -46,12 +53,21 @@ def install_obsidian():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_installer_path = Path(temp_dir) / "Obsidian.exe"
 
-        console.print(f"[green]Downloading Obsidian installer: {obsidian_url}[/green]")
-        safe_download(obsidian_url, temp_installer_path)
-
-        console.print(
-            f"[green]Running Obsidian installer: {temp_installer_path}[/green]"
+        await console.print(
+            container, f"[green]Downloading Obsidian installer: {obsidian_url}[/green]"
         )
+        await safe_download(container, obsidian_url, temp_installer_path)
+
+        await console.print(
+            container,
+            f"[green]Running Obsidian installer: {temp_installer_path}[/green]",
+        )
+
+        container.refresh()
+        await asyncio.sleep(1)
+
         subprocess.run(["cmd", "/c", str(temp_installer_path)])
 
-        console.print("[green]Obsidian installed successfully![/green]")
+        await console.print(
+            container, "[green]Obsidian installed successfully![/green]"
+        )

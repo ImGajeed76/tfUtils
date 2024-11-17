@@ -3,6 +3,8 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+from textual.containers import Container
+
 from src.lib.console import ask_input, ask_select, ask_yes_no
 from src.lib.interface import interface
 from src.lib.paths import NetworkPath
@@ -105,9 +107,9 @@ def convert_to_clion(
         shutil.copy2(workspace_config_file, workspace_xml_path)
 
 
-@interface("Neues uVision Projekt", activate=U_VISION_TEMPLATES_PATH.is_valid)
-def create_new_project():
-    console.print("uVision Templates werden geladen...")
+@interface("Neues uVision Projekt", activate=U_VISION_TEMPLATES_PATH.exists)
+async def create_new_project(container: Container):
+    await console.print(container, "uVision Templates werden geladen...")
 
     template_paths = get_all_uv_templates()
 
@@ -118,18 +120,19 @@ def create_new_project():
         str(path.relative_to(U_VISION_TEMPLATES_PATH)) for path in template_paths
     ]
 
-    template_index = ask_select("Wähle eine uVision Vorlage", template_names)
-    template_path = template_paths[template_index]
+    template_path = await ask_select(
+        container, "Wähle eine uVision Vorlage", template_names
+    )
 
     suggested_name = Path(os.getcwd()).name
-    project_name = ask_input(
-        "Projekt Name",
-        description="Wie möchtest du dein uVision Projekt nennen?",
+    project_name = await ask_input(
+        container,
+        "Wie möchtest du dein uVision Projekt nennen?",
         placeholder=suggested_name,
     )
 
-    use_new = ask_yes_no(
-        "Neuen Ordner erstellen?",
+    use_new = await ask_yes_no(
+        container,
         f"Möchtest du einen neuen Ordner mit dem namen "
         f"'{project_name}' in diesem Ordner erstellen?\n"
         f"Der neue Pfad währe dann: ./{Path.cwd().name}/{project_name}",
@@ -142,15 +145,15 @@ def create_new_project():
         new_dir_path = Path.cwd()
 
     # Copy the template folder contents to the new directory
-    safe_copy_directory(template_path, new_dir_path)
+    await safe_copy_directory(container, template_path, new_dir_path)
 
     # Clean the directory (remove .bak files and Listing/Object directories)
     clean_directory(new_dir_path)
 
     # Ask for version (pattern: vX.Y)
-    version = ask_input(
-        "Version",
-        description="Bitte gebe die Versionsnummer ein (VX.Y)",
+    version = await ask_input(
+        container,
+        "Bitte gebe die Versionsnummer ein (VX.Y)",
         regex=r"V\d+\.\d+",
         placeholder="V1.0",
     )
@@ -162,18 +165,19 @@ def create_new_project():
     # Remove .bat scripts
     remove_bat_scripts(new_dir_path)
 
-    console.print(
+    await console.print(
+        container,
         f"[green]Successfully[/green] copied template to "
-        f"[yellow]{new_dir_path}[/yellow]"
+        f"[yellow]{new_dir_path}[/yellow]",
     )
 
     # Ask if the user wants to modify the project for CLion
-    modify_clion = ask_yes_no(
-        "Projekt für CLion anpassen?", "Möchtest du das Projekt für CLion anpassen?"
+    modify_clion = await ask_yes_no(
+        container, "Möchtest du das Projekt für CLion anpassen?"
     )
     if modify_clion:
         os.chdir(new_dir_path)
-        convert_to_clion_wrapper()
+        convert_to_clion_wrapper(container)
 
 
 def in_u_vision_project() -> bool:
@@ -182,7 +186,7 @@ def in_u_vision_project() -> bool:
 
 
 @interface("zu CLion Projekt konvertieren", in_u_vision_project())
-def convert_to_clion_wrapper():
+async def convert_to_clion_wrapper(container: Container):
     current_dir = Path.cwd()
     objects_folder_name = "Object"
     for name in ["Objects", "Object", "objects", "object"]:
@@ -191,4 +195,6 @@ def convert_to_clion_wrapper():
             break
 
     convert_to_clion(objects_folder_name, current_dir)
-    console.print("[green]Successfully[/green] modified project for CLion")
+    await console.print(
+        container, "[green]Successfully[/green] modified project for CLion"
+    )
