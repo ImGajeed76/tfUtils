@@ -1,3 +1,4 @@
+import re
 import sys
 from typing import Callable, Coroutine, Iterable, List, Union
 
@@ -27,7 +28,8 @@ class InterfacePath:
         path = path.replace("\\", "/")
         path = path.replace("-", "_")
         path = path.replace("/", "-")
-        path = "".join([c if c.isalnum() or c == "-" else "_" for c in path])
+        # only allow: a-z, A-Z, 0-9, and -
+        path = re.sub(r"[^a-zA-Z0-9-]", "", path)
         return path
 
     def __str__(self):
@@ -147,7 +149,7 @@ class InterfaceViewer(App):
                     ListItem(
                         Label(reference.name),
                         name=reference.description,
-                        id=str(reference.path),
+                        id=str(reference.path / InterfacePath(reference.name)),
                         disabled=not reference.active,
                     )
                 )
@@ -222,7 +224,7 @@ class InterfaceViewer(App):
         self, reference_id: str
     ) -> Union[InterfaceReference, None]:
         for reference in self.references:
-            if str(reference.path) == reference_id:
+            if str(reference.path / InterfacePath(reference.name)) == reference_id:
                 return reference
         return None
 
@@ -244,9 +246,11 @@ class InterfaceViewer(App):
         for reference in self.references:
             if reference.call_back is not None:
                 yield SystemCommand(
-                    reference.path.original_path,
+                    reference.path.original_path + "/" + reference.name,
                     self.description_to_one_line(reference.description),
-                    lambda ref=reference: self._open_reference_by_id(str(ref.path)),
+                    lambda ref=reference: self._open_reference_by_id(
+                        str(ref.path / InterfacePath(ref.name))
+                    ),
                 )
 
 
