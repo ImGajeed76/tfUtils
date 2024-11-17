@@ -1,7 +1,7 @@
 from textual.containers import Container
 from textual.widgets import Label
 
-from src.lib.console import ask_input, ask_yes_no
+from src.lib.console import ask_input
 from src.lib.interface import interface
 
 
@@ -10,25 +10,12 @@ async def example_callback(container: Container):
     """
     This is the description of the example interface callback.
 
-    It asks the user for their name and then asks if they are ready to continue.
+    It asks the user for their name.
     """
 
-    def on_yes_no_submit(value2: bool) -> None:
-        if value2:
-            container.mount(Label("You said yes!"))
-        else:
-            container.mount(Label("You said no!"))
-
-    async def on_name_submit(value: str) -> None:
-
-        await ask_yes_no(
-            container,
-            f"Hello, {value}! Are you ready to continue?",
-            on_submit=on_yes_no_submit,
-        )
-
-    await ask_input(
+    name = await ask_input(
         container,
         "What is your name?",
-        on_submit=on_name_submit,
     )
+
+    await container.mount(Label(f"Hello, {name}!"))
