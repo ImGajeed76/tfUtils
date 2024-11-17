@@ -13,11 +13,18 @@ from urllib.parse import urlparse
 
 import aiofiles
 import aiohttp
-from rich.console import Console
 from textual.containers import Container
 from textual.widgets import Label, ProgressBar
 
 PathLike = Union[str, Path]
+
+
+class Console:
+    @staticmethod
+    async def print(container: Container, message: str) -> None:
+        """Print a message to the container."""
+        await container.mount(Label(message))
+
 
 console = Console()
 
