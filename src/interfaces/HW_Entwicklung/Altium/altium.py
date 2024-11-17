@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from rich.prompt import Prompt
+from textual.containers import Container
 
 from src.lib.console import ask_input, ask_select, ask_yes_no
 from src.lib.interface import interface
@@ -26,8 +26,10 @@ def get_all_schema_layout_templates():
     return template_dirs
 
 
-@interface("Neues Altium Projekt", activate=ALTIUM_TEMPLATES_PATH.is_valid)
-def new_altium_project(default_name=None, create_new_dir=None):
+@interface("Neues Altium Projekt", activate=ALTIUM_TEMPLATES_PATH.exists)
+async def new_altium_project(
+    container: Container, default_name=None, create_new_dir=None
+):
     if default_name is None:
         default_name = Path.cwd().name
 
@@ -40,11 +42,12 @@ def new_altium_project(default_name=None, create_new_dir=None):
         str(path.relative_to(ALTIUM_TEMPLATES_PATH)) for path in template_paths
     ]
 
-    template_index = ask_select("Select an Altium Template", choices=template_names)
-    template_path = template_paths[template_index]
+    template_path = await ask_select(
+        container, "Select an Altium Template", options=template_names
+    )
 
-    project_name = ask_input(
-        "Projekt Name",
+    project_name = await ask_input(
+        container,
         "Was ist der Name deines Altium Projekts",
         placeholder=default_name,
     )
@@ -52,8 +55,8 @@ def new_altium_project(default_name=None, create_new_dir=None):
     project_path = Path.cwd()
 
     if create_new_dir is None:
-        use_new = ask_yes_no(
-            "Neuen Ordner erstellen?",
+        use_new = await ask_yes_no(
+            container,
             (
                 f"Möchtest du einen neuen Ordner mit dem namen '{project_name}' "
                 f"in diesem Ordner erstellen?\n"
@@ -67,23 +70,27 @@ def new_altium_project(default_name=None, create_new_dir=None):
         project_path = project_path / project_name
         project_path.mkdir(exist_ok=True, parents=True)
 
-    safe_copy_directory(template_path, project_path)
+    await safe_copy_directory(container, template_path, project_path)
 
-    console.print(
+    await console.print(
+        container,
         f"[green]Successfully[/green] "
-        f"copied template to [yellow]{project_path}[/yellow]"
+        f"copied template to [yellow]{project_path}[/yellow]",
     )
 
     # Run post-copy operations
-    update_project_version(project_path, "V1.0")
-    rename_project(project_path, project_name)
+    await update_project_version(container, project_path, "V1.0")
+    await rename_project(container, project_path, project_name)
 
-    console.print(
-        "[green]Successfully[/green] updated project version and renamed project"
+    await console.print(
+        container,
+        "[green]Successfully[/green] updated project version and renamed project",
     )
 
 
-def update_project_version(project_path: Path, version=None):
+async def update_project_version(
+    container: Container, project_path: Path, version=None
+):
     os.chdir(project_path)
     # Extract old project name and version
     old_filename = next(Path.cwd().glob("*.PRJPCB")).stem
@@ -105,71 +112,41 @@ def update_project_version(project_path: Path, version=None):
 
     # Get new version
     if version is None:
-        console.print("The new version number is composed as follows:")
-        console.print("[yellow]x[/yellow].[magenta]y[/magenta]")
-        console.print("| |")
-        console.print(
+        question = (
+            "The new version number is composed as follows:\n"
+            "[yellow]x[/yellow].[magenta]y[/magenta]\n"
+            "| |\n"
             "| +------- [magenta]Minor version[/magenta] number "
-            "(extensions & bug fixes)"
-        )
-        console.print(
+            "(extensions & bug fixes)\n"
             "+--------- [yellow]Major version[/yellow] number "
-            "(new start / extremely significant change / no backward compatibility)"
-        )
-        console.print()
-        console.print(
+            "(new start / extremely significant change / no backward compatibility)\n"
+            "\n"
             f"Old project version: "
-            f"{old_project_version_major}.{old_project_version_minor}"
+            f"{old_project_version_major}.{old_project_version_minor}\n"
         )
 
-        new_minor_release = None
+        regex = (
+            rf"^(?:(?:${old_project_version_major + 1}\\d*\\.\\d+)|"
+            rf"${old_project_version_major}\\.(?:[${old_project_version_minor + 1}-9]"
+            rf"|\\d{2,}))$"
+        )
 
-        new_major_release = Prompt.ask("New major version number")
-        while True:
-            if new_major_release.isnumeric():
-                if int(new_major_release) >= int(old_project_version_major):
-                    new_major_release = int(new_major_release)
-                    break
-            elif "." in new_major_release:
-                major, minor = new_major_release.split(".")
-                if not (major.isnumeric() and minor.isnumeric()):
-                    continue
+        user_input = await ask_input(
+            container,
+            question,
+            regex=regex,
+            placeholder=f"{old_project_version_major}.{old_project_version_minor + 1}",
+        )
 
-                major = int(major)
-                minor = int(minor)
-                if major > old_project_version_major:
-                    new_major_release = major
-                    new_minor_release = minor
-                    break
-                elif (
-                    major == old_project_version_major
-                    and minor > old_project_version_minor
-                ):
-                    new_major_release = major
-                    new_minor_release = minor
-                    break
-            new_major_release = Prompt.ask(
-                "New major version number "
-                "(must be greater or equal to the old major version number)"
-            )
-
-        if new_minor_release is None:
-            new_minor_release = Prompt.ask("New minor version number")
-
-            while True:
-                if new_minor_release.isnumeric():
-                    if int(new_minor_release) > old_project_version_minor:
-                        new_minor_release = int(new_minor_release)
-                        break
-                new_minor_release = Prompt.ask(
-                    "New minor version number "
-                    "(must be greater than the old minor version number)"
-                )
-
+        new_major_release, new_minor_release = user_input.split(".")
         new_project_version = f"V{new_major_release}.{new_minor_release}"
 
         # Get comment
-        comment = Prompt.ask("History comment")
+        comment = await ask_input(
+            container,
+            "What is the reason for this version update?",
+            placeholder="Initial Project Creation",
+        )
 
     else:
         new_project_version = version
@@ -177,7 +154,7 @@ def update_project_version(project_path: Path, version=None):
 
     # Get user initials
     user = getpass.getuser().split("\\")[-1][-4:]
-    user = Prompt.ask("User initials", default=user)
+    user = await ask_input(container, "User initials", placeholder=user)
 
     # Get current date
     date = datetime.now().strftime("%m/%d/%Y")
@@ -210,10 +187,14 @@ def update_project_version(project_path: Path, version=None):
     with open("_history.txt", "a") as f:
         f.write(history_line + "\n")
 
-    console.print("[green]Project version updated successfully.[/green]")
+    await console.print(
+        container, "[green]Project version updated successfully.[/green]"
+    )
 
 
-def rename_project(project_path: Path, new_project_name=None):
+async def rename_project(
+    container: Container, project_path: Path, new_project_name=None
+):
     os.chdir(project_path)
 
     # Extract old project name and version
@@ -221,11 +202,11 @@ def rename_project(project_path: Path, new_project_name=None):
     old_project_name, project_version = old_filename.split("_")
 
     # Display old project name
-    console.print(f"Old project name: {old_project_name}")
+    await console.print(container, f"Old project name: {old_project_name}")
 
     # Get new project name
     if not new_project_name:
-        new_project_name = Prompt.ask("Enter the new project name")
+        new_project_name = await ask_input(container, "Enter the new project name")
 
     # New filename (without extension)
     new_filename = f"{new_project_name}_{project_version}"
@@ -252,7 +233,7 @@ def rename_project(project_path: Path, new_project_name=None):
         new_project_name,
     )
 
-    console.print("[green]Project renamed successfully.[/green]")
+    await console.print(container, "[green]Project renamed successfully.[/green]")
 
 
 def _rename_files(
@@ -334,27 +315,39 @@ def is_altium_project() -> bool:
     return any(file.suffix in (".PRJPCB") for file in Path.cwd().rglob("*.PRJPCB"))
 
 
-@interface("Altium Projekt umbenennen", is_altium_project())
-def rename_altium_project():
+@interface("Altium Projekt umbenennen", is_altium_project)
+async def rename_altium_project(container: Container):
+    project_path = None
     for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
-    console.print(f"Project path: [yellow]{project_path}[/yellow]")
+    if not project_path:
+        await console.print(container, "[red]No Altium project found[/red]")
+        return
 
-    rename_project(project_path)
+    await console.print(container, f"Project path: [yellow]{project_path}[/yellow]")
 
-    console.print("[green]Successfully[/green] renamed project")
+    await rename_project(container, project_path)
+
+    await console.print(container, "[green]Successfully[/green] renamed project")
 
 
-@interface("Altium Projekt Version ändern", is_altium_project())
-def run():
+@interface("Altium Projekt Version ändern", is_altium_project)
+async def reversion_altium_project(container: Container):
+    project_path = None
     for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
-    console.print(f"Project path: [yellow]{project_path}[/yellow]")
+    if not project_path:
+        await console.print(container, "[red]No Altium project found[/red]")
+        return
 
-    update_project_version(project_path)
+    await console.print(container, f"Project path: [yellow]{project_path}[/yellow]")
 
-    console.print("[green]Successfully[/green] updated project version")
+    await update_project_version(container, project_path)
+
+    await console.print(
+        container, "[green]Successfully[/green] updated project version"
+    )
