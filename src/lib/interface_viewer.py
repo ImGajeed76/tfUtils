@@ -1,5 +1,6 @@
 import re
 import sys
+from pathlib import Path
 from typing import Callable, Coroutine, Iterable, List, Union
 
 from textual import on
@@ -100,6 +101,7 @@ class InterfaceViewer(App):
 
     def __init__(self, title: str, references: List[InterfaceReference]):
         self.TITLE = title
+        self.SUB_TITLE = str(Path.cwd())
         super().__init__()
         self.references = references
 
