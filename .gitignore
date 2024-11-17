@@ -1,6 +1,73 @@
-/.idea
+# Python virtual environments
 /.venv
-/build
-/dist
-utils.spec
-/testing
+/venv
+/.env
+/env
+/.python-version  # pyenv
+/.poetry  # Poetry
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+/dist/
+/build/
+*.egg-info/
+*.egg
+MANIFEST
+
+# IDE - PyCharm, VSCode, etc
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Build and test artifacts
+*.spec
+/testing/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.log
+
+# Documentation
+/docs/_build/
+/site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Environment variables and secrets
+.env
+.env.*
+*.pem
+secrets.*
+
+# Operating System
+.DS_Store  # macOS
+Thumbs.db  # Windows
+*.bak
+*.tmp
+*.temp
+
+# Project-specific build outputs
+/output/
+/data/
+/logs/
+/results/
+
+# Dependencies
+/node_modules/  # If using JavaScript tools
+/vendor/  # If using any vendor directories
