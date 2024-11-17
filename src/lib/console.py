@@ -3,7 +3,7 @@ Textual Wrappers for common console prompts.
 """
 
 import re
-from typing import Callable, Coroutine, Union
+from typing import Union
 
 from textual import on
 from textual.app import ComposeResult
@@ -26,27 +26,22 @@ async def ask_input(
     max_length: int = 0,
     suggester: Union[Suggester, None] = None,
     button_text: str = "Enter",
-    on_submit: Callable[[str], Union[Coroutine, None]] = None,
     regex: str = r"[\u0000-\uFFFF]*",
-) -> None:
+) -> str:
     """
     Ask the user for input with a regex validator.
 
     Example:
     ```python
-    async def on_submit(vault_name: str) -> None:
-        await container.mount(
-            Label(f"Vault Name: {vault_name}", id="example_interface")
-        )
-
-    await ask_input(
+    name = await ask_input(
         container,
         "Enter the name of the vault",
         placeholder="Vault Name",
         button_text="Create Vault",
-        on_submit=on_submit,
         regex=r"Vault-\d{2}_[A-Za-z0-9]+$"
     )
+
+    container.mount(Label(f"Vault Name: {name}"))
     ```
 
     Args:
@@ -59,7 +54,6 @@ async def ask_input(
         max_length: The maximum length of the input
         suggester: The suggester for the input field
         button_text: The text for the button
-        on_submit: The callback for when the input is submitted
         regex: The regex pattern to validate the input
     """
 
@@ -129,13 +123,12 @@ async def ask_input(
             if self.valid_input:
                 self.dismiss(self.query_one(Input).value)
 
-    await container.app.push_screen(InputScreen(), callback=on_submit)
+    return await container.app.push_screen_wait(InputScreen())
 
 
 async def ask_yes_no(
     container: Container,
     question: str,
-    on_submit: Callable[[bool], Union[None, Coroutine]],
     yes_text: str = "Yes",
     no_text: str = "No",
     default: bool = True,
@@ -145,20 +138,17 @@ async def ask_yes_no(
 
     Example:
     ```python
-    async def on_submit(value: bool) -> None:
-        print(f"You Pressed: {value}")
-
-    await ask_yes_no(
+    answer = await ask_yes_no(
         container,
-        "Do you want to create a vault?",
-        on_submit=on_submit,
+        "Do you want to create a vault?"
     )
+
+    container.mount(Label(f"Answer: {'Yes' if answer else 'No'}"))
     ```
 
     Args:
         container: The container to display the prompt in.
         question: The question to ask the user.
-        on_submit: The callback to call when the user submits the answer.
         yes_text: The text to display on the yes button.
         no_text: The text to display on the no button.
         default: The default answer to the question.
@@ -198,4 +188,4 @@ async def ask_yes_no(
         def action_no(self) -> None:
             self.dismiss(False)
 
-    await container.app.push_screen(InputScreen(), callback=on_submit)
+    return await container.app.push_screen_wait(InputScreen())
