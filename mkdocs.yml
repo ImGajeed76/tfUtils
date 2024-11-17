@@ -1,6 +1,6 @@
 site_name: TF Utils Documentation
 site_description: Documentation for TF Utils - A user-friendly tool for TFBern students
-site_author: ImGajeed76
+site_author: Oliver Seifert
 repo_url: https://github.com/ImGajeed76/tfUtils
 repo_name: ImGajeed76/tfUtils
 edit_uri: edit/main/docs/
@@ -83,5 +83,4 @@ nav:
     - Project Structure: development/structure.md
     - Key Components: development/components.md
     - Creating Features: development/creating-features.md
-  - Support & Community: support.md
   - License: license.md

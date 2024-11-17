@@ -63,6 +63,9 @@ poetry run pytest
 poetry run pre-commit run --all-files
 ```
 
+> 💡 **Tip**: Create a `testing` folder in your root directory.
+> Then instead of running `poetry run python main.py`, move to the `testing` folder and run `poetry run python ../main.py`.
+
 #### Commit Guidelines
 
 We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
@@ -147,9 +150,9 @@ git push origin feature/my-new-feature
 
 Once approved:
 
-1. Maintainer will merge your PR
-2. Delete your feature branch
-3. Pull the latest main branch
+1. The Maintainer will merge your PR
+2. You will delete your feature branch
+3. And pull the latest main branch
 
 ```bash
 git checkout main
@@ -191,9 +194,3 @@ git branch -d feature/my-new-feature
 - Explain complex changes
 - Keep PR discussions focused
 - Be respectful and professional
-
-## Troubleshooting
-
-Need more help? Check
-our [development discussions](https://github.com/ImGajeed76/tfUtils/discussions/categories/development) or reach out to
-the maintainers.

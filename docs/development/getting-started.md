@@ -82,15 +82,12 @@ TF Utils uses several tools to maintain code quality:
 
 - **Black**: Code formatter
     - Enforces consistent code style
-    - Run with: `poetry run black .`
 
 - **isort**: Import sorter
     - Organizes import statements
-    - Run with: `poetry run isort .`
 
 - **Ruff**: Linter
     - Checks for common issues
-    - Run with: `poetry run ruff check .`
 
 - **pre-commit**: Git hooks
     - Runs all checks before commits
@@ -125,7 +122,6 @@ Now that your development environment is set up, you can:
 
 If you encounter any issues during setup:
 
-1. Check our [Common Issues](#common-issues-and-solutions) section
-2. Search existing [GitHub Issues](https://github.com/ImGajeed76/tfUtils/issues)
-3. Ask for help in [Discussions](https://github.com/ImGajeed76/tfUtils/discussions)
-4. [Create a new issue](https://github.com/ImGajeed76/tfUtils/issues/new) if the problem persists
+1. Search existing [GitHub Issues](https://github.com/ImGajeed76/tfUtils/issues)
+2. Ask for help in [Discussions](https://github.com/ImGajeed76/tfUtils/discussions)
+3. [Create a new issue](https://github.com/ImGajeed76/tfUtils/issues/new) if the problem persists

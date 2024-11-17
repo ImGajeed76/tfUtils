@@ -101,6 +101,11 @@ TF Utils provides SHA256 checksums for all releases. To verify your download:
    Get-FileHash tfutils_setup_vX.X.X.exe -Algorithm SHA256
    ```
 3. Compare the output with the checksum in `SHA256SUMS`
+4. You will notice the following:
+    1. "Why didn't GitHub download the file?" - Seems like it's because the file has no ending. Right-Click on the file
+       and click "Open link in new tab" to download the file.
+    2. "The checksum doesn't match!" - Yeah I know, currently the file doesn't provide the setup file's checksum. I will
+       fix this in the future. 🙇‍♂️
 
 ## Uninstallation
 
@@ -129,6 +134,3 @@ If you encounter any installation issues:
 Now that you've installed TF Utils, you might want to:
 
 - Read the [User Guide](user-guide.md) to learn basic usage
-- Try creating your [first project](user-guide.md#creating-your-first-project)
-- Explore [advanced features](advanced-features.md)
-- Join our [community](community.md)

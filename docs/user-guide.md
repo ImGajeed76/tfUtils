@@ -24,22 +24,8 @@ TF Utils uses an intuitive, interactive menu system:
 
 - Use `↑` and `↓` arrow keys to move between options
 - Press `Enter` to select the highlighted option
-- Or simply press the number shown next to your choice
-- Use `Esc` to exit
-
-Example menu interface:
-
-```plaintext
-╭───────────────────────── Choose an Action: ──────────────────────────╮
-│ Use arrow keys to navigate, Enter to select, or press the number key │
-│                                                                      │
-│    1. Altium Project                                                 │
-│    2. Obsidian Notes                                                 │
-│    3. Office Documents                                               │
-│    4. New Project                                                    │
-│ -> 5. µVision Project                                                │
-╰──────────────────────────────────────────────────────────────────────╯
-```
+- Or simply use your mouse! Wait what? Yes, you can use your mouse to select options.
+- If you want to be really fancy, you can press `ctrl + p` to open the search bar and search for the option you want!
 
 ## Core Features
 
@@ -56,11 +42,17 @@ TF Utils provides pre-configured templates for common project types:
 
 - Establishes note-taking workspace
 - Sets up templates for:
-  - Daily Journal
+  - Daily Journal (Press `ctrl + shift + j` to create a new daily journal)
 - Configures recommended plugins
   - Excalidraw
-  - Calendar
-  - (other)
+  - Numerals
+  - Better Word Count
+  - OZ Calendar
+  - Obsidian Banners
+  - Obsidian File Cleaner
+  - Quick Add
+  - Table Editor
+  - Code Block Customizer
 
 #### Office Documents
 
@@ -71,14 +63,6 @@ TF Utils provides pre-configured templates for common project types:
 - Copies the µVision project template
 - Configures project name and version
 - Configures project as CLion project (optional)
-
-### File Management
-
-TF Utils helps you maintain organized project structures:
-
-- **Automatic Organization**: Files are sorted into appropriate directories
-- **Consistent Naming**: Enforces naming conventions
-- **Version Control**: Helps maintain file versions
 
 ### Smart Prompts
 
@@ -91,9 +75,8 @@ Every operation includes clear guidance:
 
 ### Keyboard Shortcuts
 
-- `Ctrl + C`: Cancel current operation
-- `Esc`: Exit menu
-- Number keys: Quick select menu items
+- `ctrl + c`: Exit the program
+- `ctrl + p`: Open the search bar
 
 ### Getting Help
 
@@ -109,6 +92,4 @@ If you encounter issues:
 
 ## Next Steps
 
-- Explore [advanced features](advanced-features.md)
-- Learn about [custom templates](custom-templates.md)
 - Contribute to [development](development/getting-started.md)

@@ -19,7 +19,7 @@ target-version = "py38"
 
 [tool.poetry]
 name = "tfutils"
-version = "1.0.2"
+version = "2.0.0"
 description = "A simple and extendible cli for managing files at the TFBern"
 authors = ["imgajeed <github.staging362@passmail.net>"]
 license = "GPL-3.0"
@@ -31,8 +31,11 @@ python = ">=3.10,<3.11"
 rich = "^13.9.4"
 tqdm = "^4.67.0"
 requests = "^2.32.3"
-textual = "^0.85.2"
+textual = "^0.86.1"
 aiofiles = "^24.1.0"
+mkdocs-material = "^9.5.44"
+mkdocs-git-revision-date-localized-plugin = "^1.3.0"
+mkdocs-minify-plugin = "^0.8.0"
 
 
 [tool.poetry.group.dev.dependencies]
