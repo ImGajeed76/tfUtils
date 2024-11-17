@@ -5,7 +5,7 @@ Textual Wrappers for common console prompts.
 import re
 from typing import Union
 
-from textual import on
+from textual import events, on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal
@@ -13,7 +13,7 @@ from textual.geometry import Spacing
 from textual.screen import Screen
 from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
-from textual.widgets import Button, Footer, Input, Label
+from textual.widgets import Button, Footer, Input, Label, ListItem, ListView
 
 
 async def ask_input(
@@ -41,7 +41,7 @@ async def ask_input(
         regex=r"Vault-\d{2}_[A-Za-z0-9]+$"
     )
 
-    container.mount(Label(f"Vault Name: {name}"))
+    await container.mount(Label(f"Vault Name: {name}"))
     ```
 
     Args:
@@ -143,7 +143,7 @@ async def ask_yes_no(
         "Do you want to create a vault?"
     )
 
-    container.mount(Label(f"Answer: {'Yes' if answer else 'No'}"))
+    await container.mount(Label(f"Answer: {'Yes' if answer else 'No'}"))
     ```
 
     Args:
@@ -187,5 +187,57 @@ async def ask_yes_no(
 
         def action_no(self) -> None:
             self.dismiss(False)
+
+    return await container.app.push_screen_wait(InputScreen())
+
+
+async def ask_select(
+    container: Container,
+    question: str,
+    options: list[str],
+) -> str:
+    """
+    Ask the user to select an option from a list.
+
+    Example:
+    ```python
+    option = await ask_select(
+        container,
+        "Select a color",
+        ["Red", "Green", "Blue"]
+    )
+
+    await container.mount(Label(f"Selected: {option}"))
+    ```
+
+    Args:
+        container: The container to display the prompt in.
+        question: The question to ask the user.
+        options: The list of options to select from.
+    """
+
+    class InputScreen(Screen):
+        list_view: ListView
+
+        def compose(self) -> ComposeResult:
+            input_label = Label(question)
+            input_label.styles.margin = Spacing(1, 1, 1, 1)
+
+            self.list_view = ListView()
+
+            yield input_label
+            yield self.list_view
+            yield Footer()
+
+        def _on_mount(self, event: events.Mount) -> None:
+            for option in options:
+                self.list_view.append(ListItem(Label(option), name=option))
+            self.list_view.index = 0
+            self.list_view.refresh()
+            self.list_view.focus()
+
+        @on(ListView.Selected)
+        def on_select(self, event: ListView.Selected) -> None:
+            self.dismiss(event.item.name)
 
     return await container.app.push_screen_wait(InputScreen())
