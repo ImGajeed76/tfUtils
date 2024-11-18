@@ -22,8 +22,8 @@ Always start your work by creating a new feature branch from the latest `main`:
 ```bash
 # Ensure you're up to date
 git fetch origin
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 
 # Create and switch to a new branch
 git checkout -b feature/my-new-feature
@@ -155,8 +155,8 @@ Once approved:
 3. And pull the latest main branch
 
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git branch -d feature/my-new-feature
 ```
 

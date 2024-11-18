@@ -82,10 +82,9 @@ Every operation includes clear guidance:
 
 If you encounter issues:
 
-1. Check the [FAQ](https://github.com/ImGajeed76/tfUtils/wiki/FAQ)
-2. Search [existing issues](https://github.com/ImGajeed76/tfUtils/issues)
-3. Join our [discussions](https://github.com/ImGajeed76/tfUtils/discussions)
-4. Create a new issue with:
+1. Search [existing issues](https://github.com/ImGajeed76/tfUtils/issues)
+2. Join our [discussions](https://github.com/ImGajeed76/tfUtils/discussions)
+3. Create a new issue with:
     - Clear description
     - Steps to reproduce
     - System information
