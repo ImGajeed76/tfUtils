@@ -79,7 +79,7 @@ def scan_interfaces(folder_path: Path, src_path: Path) -> List[InterfaceInfo]:
                     interface_info = InterfaceInfo(
                         name=getattr(func, "_NAME", "Unnamed Interface"),
                         path=file.relative_to(folder_path).with_suffix("").as_posix(),
-                        description=inspect.getdoc(func) or "",
+                        description=inspect.getdoc(func) or "No docstring provided",
                         is_active=getattr(func, "_ACTIVATE", True),
                         callback=func,
                         import_path=f"{module_path}.{func.__name__}",
