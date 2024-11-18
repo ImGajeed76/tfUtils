@@ -136,6 +136,17 @@ aiohttp = ">=3.9.0"
 jinja2 = ">=3.0.0"
 
 [[package]]
+name = "aioshutil"
+version = "1.5"
+description = "Asynchronous shutil module."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "aioshutil-1.5-py3-none-any.whl", hash = "sha256:bc2a6cdcf1a8615b62f856154fd81131031d03f2834912ebb06d8a2391253652"},
+    {file = "aioshutil-1.5.tar.gz", hash = "sha256:2756d6cd3bb03405dc7348ac11a0b60eb949ebd63cdd15f56e922410231c1201"},
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.3.1"
 description = "aiosignal: a list of registered asynchronous callbacks"
@@ -1975,4 +1986,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "854a6dc462ee299ddb875e906b3e96fedc47fff3b6db0f943c8fc532ddce8174"
+content-hash = "1a32f6f92e35e5c6c51bb1d9b6ac0a78f84a6b89de527f114f8b60a526da6015"

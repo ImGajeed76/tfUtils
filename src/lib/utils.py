@@ -6,9 +6,9 @@ and support for Windows network paths.
 """
 
 import asyncio
-from dataclasses import dataclass
+import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Protocol, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import aiofiles
@@ -47,25 +47,10 @@ class ValidationError(FileSystemError):
     pass
 
 
-@dataclass
-class CopyStats:
-    """Statistics for copy operations."""
+class DownloadError(FileSystemError):
+    """Exception raised when a download operation fails."""
 
-    total_files: int = 0
-    total_dirs: int = 0
-    total_bytes: int = 0
-    failed_operations: List[str] = None
-
-    def __post_init__(self):
-        self.failed_operations = self.failed_operations or []
-
-
-class ProgressCallback(Protocol):
-    """Protocol for progress callback functions."""
-
-    def __call__(self, current: int, total: int, description: str) -> None:
-        """Update progress information."""
-        ...
+    pass
 
 
 class PathValidator:
@@ -73,304 +58,23 @@ class PathValidator:
 
     @staticmethod
     def validate_path_type(path: PathLike, name: str) -> None:
-        """Validate that a path is of the correct type."""
         if not isinstance(path, (str, Path)):
             raise ValidationError(f"{name} must be either str or Path object")
 
     @staticmethod
     def validate_source_exists(path: Path) -> None:
-        """Validate that a source path exists."""
         if not path.exists():
             raise FileNotFoundError(f"Source {path} does not exist")
 
     @staticmethod
-    def validate_is_directory(path: Path) -> None:
-        """Validate that a path is a directory."""
-        if not path.is_dir():
-            raise NotADirectoryError(f"Path {path} is not a directory")
-
-    @staticmethod
     def validate_is_file(path: Path) -> None:
-        """Validate that a path is a file."""
         if not path.is_file():
             raise IsADirectoryError(f"Path {path} is not a file")
 
-
-class ProgressTracker:
-    """Handles progress tracking for file operations."""
-
-    def __init__(self, container: Container):
-        self.container = container
-
-    async def create_progress_bar(self, total: int) -> ProgressBar:
-        """Create a progress bar for tracking operations."""
-        progress_bar = ProgressBar(total=total)
-        await self.container.mount(progress_bar)
-        return progress_bar
-
     @staticmethod
-    async def advance_progress(pbar: ProgressBar, amount: int) -> None:
-        """Update the progress bar asynchronously."""
-        if pbar.total is not None:  # Check if we have a total to avoid division by zero
-            pbar.advance(amount)
-            pbar.refresh()
-
-
-class FileCopier:
-    """Handles file copy operations with optimized performance."""
-
-    def __init__(self, container: Container):
-        self.container = container
-        self.validator = PathValidator()
-        self.progress = ProgressTracker(container)
-        self._copy_semaphore = asyncio.Semaphore(10)
-        self._progress_update_interval = 0.1  # Update progress every 100ms
-        self._last_progress_update = 0
-
-    async def copy_file(
-        self,
-        source: PathLike,
-        destination: PathLike,
-        buffer_size: int = 1024 * 1024 * 100,
-    ) -> Tuple[int, Optional[str]]:
-        """Copy a single file with optimized progress tracking.
-
-        Improvements:
-        - Increased buffer size to 1MB for better throughput
-        - Throttled progress updates to reduce UI overhead
-        - Batched progress updates
-        - Reduced container mounting frequency
-
-        Returns:
-            Tuple[int, Optional[str]]: (bytes copied, error message if failed)
-        """
-        source_path = Path(source)
-        dest_path = Path(destination)
-
-        try:
-            async with self._copy_semaphore:
-                # Validate inputs
-                self.validator.validate_path_type(source, "source")
-                self.validator.validate_path_type(destination, "destination")
-                self.validator.validate_source_exists(source_path)
-                self.validator.validate_is_file(source_path)
-
-                if dest_path.is_dir():
-                    dest_path = dest_path / source_path.name
-
-                # Ensure destination directory exists
-                dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # Copy with optimized progress tracking
-                file_size = source_path.stat().st_size
-                pbar = await self.progress.create_progress_bar(file_size)
-
-                accumulated_progress = 0
-                current_time = asyncio.get_event_loop().time()
-
-                async with aiofiles.open(source_path, "rb") as fsrc:
-                    async with aiofiles.open(dest_path, "wb") as fdst:
-                        while True:
-                            chunk = await fsrc.read(buffer_size)
-                            if not chunk:
-                                break
-
-                            await fdst.write(chunk)
-                            accumulated_progress += len(chunk)
-
-                            # Update progress bar less frequently
-                            new_time = asyncio.get_event_loop().time()
-                            if (
-                                new_time - current_time
-                            ) >= self._progress_update_interval:
-                                await self.progress.advance_progress(
-                                    pbar, accumulated_progress
-                                )
-                                accumulated_progress = 0
-                                current_time = new_time
-
-                # Final progress update
-                if accumulated_progress > 0:
-                    await self.progress.advance_progress(pbar, accumulated_progress)
-
-                # Only mount completion message for larger files
-                if file_size > 10 * 1024 * 1024:  # 10MB
-                    await self.container.mount(
-                        Label(f"[green]Successfully copied {source_path.name}[/green]")
-                    )
-
-                return file_size, None
-
-        except Exception as e:
-            error_msg = f"Failed to copy {source_path}: {str(e)}"
-            await self.container.mount(Label(f"[red]{error_msg}[/red]"))
-            return 0, error_msg
-
-
-class DirectoryCopier:
-    """Handles parallel directory copy operations with progress tracking."""
-
-    def __init__(self, container: Container):
-        self.container = container
-        self.validator = PathValidator()
-        self.progress = ProgressTracker(container)
-        self.file_copier = None
-        self.vertical_container = None
-        self._scan_semaphore = asyncio.Semaphore(10)  # Limit concurrent directory scans
-
-    async def get_dir_size(self, path: Path) -> int:
-        """Calculate total size of all files in directory using parallel scanning."""
-        total_size = 0
-        async with self._scan_semaphore:
-            for item in path.rglob("*"):
-                if item.is_file():
-                    try:
-                        total_size += item.stat().st_size
-                    except OSError:
-                        continue
-        return total_size
-
-    async def scan_directory(self, path: Path) -> Tuple[List[Path], List[Path]]:
-        """Scan directory and return lists of files and subdirectories."""
-        files = []
-        dirs = []
-        try:
-            async with self._scan_semaphore:
-                for item in path.rglob("*"):
-                    try:
-                        if item.is_file():
-                            files.append(item)
-                        elif item.is_dir():
-                            dirs.append(item)
-                    except OSError:
-                        continue
-        except Exception as e:
-            await self.container.mount(
-                Label(f"[red]Error scanning directory {path}: {str(e)}[/red]")
-            )
-        return files, dirs
-
-    @staticmethod
-    async def count_items(path: Path) -> Tuple[int, int]:
-        """Count total files and directories."""
-        files = 0
-        dirs = 0
-        for item in path.rglob("*"):
-            try:
-                if item.is_file():
-                    files += 1
-                elif item.is_dir():
-                    dirs += 1
-            except OSError:
-                continue  # Skip items we can't access
-        return files, dirs
-
-    async def setup_progress_tracking(
-        self, source_path: Path
-    ) -> Tuple[ProgressBar, Container]:
-        """Set up progress tracking UI elements."""
-        total_size = await self.get_dir_size(source_path)
-        total_files, total_dirs = await self.count_items(source_path)
-
-        await self.container.mount(
-            Label(
-                f"[blue]Found {total_files} files and {total_dirs} directories "
-                f"({total_size / 1024 / 1024:.2f} MB total)[/blue]"
-            )
-        )
-
-        progress_bar = await self.progress.create_progress_bar(total_size)
-
-        vertical_container = Container()
-        vertical_container.styles.max_height = 20
-        vertical_container.styles.overflow_y = "scroll"
-        await self.container.mount(vertical_container)
-
-        return progress_bar, vertical_container
-
-    async def copy_directory(
-        self,
-        source: PathLike,
-        destination: PathLike,
-        stats: Optional[CopyStats] = None,
-        max_concurrent_copies: int = 5,
-    ) -> CopyStats:
-        """Recursively copy a directory with parallel file operations."""
-        source_path = Path(source)
-        dest_path = Path(destination)
-        stats = stats or CopyStats()
-
-        try:
-            # Validate inputs
-            self.validator.validate_path_type(source, "source")
-            self.validator.validate_path_type(destination, "destination")
-            self.validator.validate_source_exists(source_path)
-            self.validator.validate_is_directory(source_path)
-
-            # Create destination directory
-            dest_path.mkdir(parents=True, exist_ok=True)
-            stats.total_dirs += 1
-
-            # Initialize progress tracking
-            if self.file_copier is None:
-                pbar, self.vertical_container = await self.setup_progress_tracking(
-                    source_path
-                )
-                self.file_copier = FileCopier(self.vertical_container)
-
-            # Scan directory structure
-            files, dirs = await self.scan_directory(source_path)
-
-            # Create all required directories first
-            for dir_path in dirs:
-                rel_path = dir_path.relative_to(source_path)
-                new_dir = dest_path / rel_path
-                new_dir.mkdir(parents=True, exist_ok=True)
-                stats.total_dirs += 1
-
-            async def copy_wrapper(fp: Path, df: Path):
-                return_value = await self.file_copier.copy_file(fp, df)
-                file_size = fp.stat().st_size
-                await self.progress.advance_progress(pbar, file_size)
-                if self.vertical_container:
-                    self.vertical_container.scroll_end()
-                return return_value
-
-            # Copy files in parallel
-            copy_tasks = []
-            for file_path in files:
-                rel_path = file_path.relative_to(source_path)
-                dest_file = dest_path / rel_path
-                copy_tasks.append(copy_wrapper(file_path, dest_file))
-
-            # Use asyncio.gather to run copies in parallel with concurrency limit
-            results = []
-            for i in range(0, len(copy_tasks), max_concurrent_copies):
-                batch = copy_tasks[i : i + max_concurrent_copies]
-                batch_results = await asyncio.gather(*batch, return_exceptions=True)
-                results.extend(batch_results)
-
-            # Process results
-            for size, error in results:
-                if error is None:
-                    stats.total_files += 1
-                    stats.total_bytes += size
-                else:
-                    stats.failed_operations.append(error)
-
-            return stats
-
-        except Exception as e:
-            error_msg = f"Failed to copy directory {source_path}: {str(e)}"
-            stats.failed_operations.append(error_msg)
-            await self.container.mount(Label(f"[red]{error_msg}[/red]"))
-            return stats
-
-
-class DownloadError(FileSystemError):
-    """Exception raised when a download operation fails."""
-
-    pass
+    def validate_is_directory(path: Path) -> None:
+        if not path.is_dir():
+            raise NotADirectoryError(f"Path {path} is not a directory")
 
 
 class DownloadValidator(PathValidator):
@@ -395,41 +99,454 @@ class DownloadValidator(PathValidator):
             raise ValidationError("Server did not provide content length")
 
 
+class ProgressTracker:
+    """Handles progress tracking for file operations."""
+
+    def __init__(self, container: Container):
+        self.container = container
+
+    async def create_progress_bar(self, total: int) -> ProgressBar:
+        progress_bar = ProgressBar(total=total)
+        await self.container.mount(progress_bar)
+        return progress_bar
+
+    @staticmethod
+    async def advance_progress(pbar: ProgressBar, amount: int) -> None:
+        if pbar.total is not None:
+            pbar.advance(amount)
+            pbar.refresh()
+
+
+class FileCopier:
+    """Handles file copy operations with optimized performance."""
+
+    def __init__(self, container: Container):
+        self.container = container
+        self.validator = PathValidator()
+        self.progress = ProgressTracker(container)
+        self._copy_semaphore = asyncio.Semaphore(10)
+
+    async def copy_file(
+        self,
+        source: PathLike,
+        destination: PathLike,
+    ) -> Tuple[int, Optional[str]]:
+        """Copy a single file with optimized progress tracking.
+
+        Uses a hybrid approach combining shutil for speed with async monitoring
+        for progress tracking.
+
+        Returns:
+            Tuple[int, Optional[str]]: (bytes copied, error message if failed)
+        """
+        source_path = Path(source)
+        dest_path = Path(destination)
+
+        try:
+            async with self._copy_semaphore:
+                # Validate inputs
+                self.validator.validate_path_type(source, "source")
+                self.validator.validate_path_type(destination, "destination")
+                self.validator.validate_source_exists(source_path)
+                self.validator.validate_is_file(source_path)
+
+                if dest_path.is_dir():
+                    dest_path = dest_path / source_path.name
+
+                # Ensure destination directory exists
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Set up progress tracking
+                file_size = source_path.stat().st_size
+                pbar = await self.progress.create_progress_bar(file_size)
+
+                async def monitor_progress():
+                    """Monitor copy progress asynchronously"""
+                    dst_size = 0
+                    while dst_size < file_size:
+                        try:
+                            current_size = dest_path.stat().st_size
+                            delta = current_size - dst_size
+                            if delta > 0:
+                                await self.progress.advance_progress(pbar, delta)
+                            dst_size = current_size
+                        except FileNotFoundError:
+                            await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.1)
+
+                async def copy_file():
+                    """Perform the actual file copy operation"""
+                    await asyncio.to_thread(shutil.copy2, source_path, dest_path)
+
+                # Create and run tasks
+                copy_task = asyncio.create_task(copy_file())
+                monitor_task = asyncio.create_task(monitor_progress())
+
+                try:
+                    await copy_task
+                finally:
+                    monitor_task.cancel()
+                    try:
+                        await monitor_task
+                    except asyncio.CancelledError:
+                        pass
+
+                # Final progress update
+                final_size = dest_path.stat().st_size
+                if final_size != file_size:
+                    error_msg = (
+                        f"File size mismatch! Expected {file_size}, got {final_size}"
+                    )
+                    await self.container.mount(Label(f"[red]{error_msg}[/red]"))
+                    return 0, error_msg
+
+                await self.progress.advance_progress(pbar, file_size)
+
+                await self.container.mount(
+                    Label(f"[green]Successfully copied {source_path.name}[/green]")
+                )
+                return file_size, None
+
+        except Exception as e:
+            error_msg = f"Failed to copy {source_path}: \n{str(e)}"
+            await self.container.mount(Label(f"[red]{error_msg}[/red]"))
+            return 0, error_msg
+
+
+class DirectoryCopier:
+    """
+    Handles directory copy operations with progress tracking using shutil.copytree.
+    """
+
+    def __init__(self, container: Container):
+        self.container = container
+        self.validator = PathValidator()
+        self.progress = ProgressTracker(container)
+        self._scan_semaphore = asyncio.Semaphore(10)  # Limit concurrent directory scans
+
+    async def get_dir_size(self, path: Path) -> int:
+        """Calculate total size of all files in directory using parallel scanning."""
+        total_size = 0
+        async with self._scan_semaphore:
+            for item in path.rglob("*"):
+                if item.is_file():
+                    try:
+                        total_size += item.stat().st_size
+                    except OSError:
+                        continue
+        return total_size
+
+    async def copy_directory(
+        self, source: PathLike, destination: PathLike
+    ) -> Tuple[int, Optional[str]]:
+        """Copy a directory using shutil.copytree with progress tracking.
+
+        Args:
+            source: Source directory path
+            destination: Destination directory path
+            stats: Optional CopyStats object for tracking progress
+
+        Returns:
+            CopyStats object with copy operation statistics
+        """
+        source_path = Path(source)
+        dest_path = Path(destination)
+
+        try:
+            # Validate inputs
+            self.validator.validate_path_type(source, "source")
+            self.validator.validate_path_type(destination, "destination")
+            self.validator.validate_source_exists(source_path)
+            self.validator.validate_is_directory(source_path)
+
+            # Set up progress tracking
+            folder_size = await self.get_dir_size(source_path)
+            pbar = await self.progress.create_progress_bar(folder_size)
+
+            # Custom copy function that updates progress
+            async def monitor_progress():
+                """Monitor copy progress asynchronously"""
+                copied_size = 0
+                while copied_size < folder_size:
+                    try:
+                        current_size = await self.get_dir_size(dest_path)
+                        delta = current_size - copied_size
+                        if delta > 0:
+                            await self.progress.advance_progress(pbar, delta)
+                        copied_size = current_size
+                    except FileNotFoundError:
+                        await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.1)
+
+            # Use shutil.copytree with custom copy function
+            async def copy_directory():
+                """Perform the actual directory copy operation"""
+                await asyncio.to_thread(
+                    shutil.copytree,
+                    source_path,
+                    dest_path,
+                    symlinks=True,
+                    dirs_exist_ok=True,
+                )
+
+            copy_task = asyncio.create_task(copy_directory())
+            monitor_task = asyncio.create_task(monitor_progress())
+
+            try:
+                await copy_task
+            finally:
+                monitor_task.cancel()
+                try:
+                    await monitor_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Final progress update
+            final_size = await self.get_dir_size(dest_path)
+            if final_size != folder_size:
+                error_msg = (
+                    f"Directory size mismatch! Expected {folder_size}, got {final_size}"
+                )
+                await self.container.mount(Label(f"[red]{error_msg}[/red]"))
+                return 0, error_msg
+
+            await self.progress.advance_progress(pbar, folder_size)
+
+            await self.container.mount(
+                Label(f"[green]Successfully copied directory {source_path}[/green]")
+            )
+            return folder_size, None
+
+        except Exception as e:
+            error_msg = f"Failed to copy directory {source_path}: \n{str(e)}"
+            await self.container.mount(Label(f"[red]{error_msg}[/red]"))
+            return 0, error_msg
+
+
 class Downloader:
-    """Handles file downloads with progress tracking."""
+    """Handles file downloads with optimized performance and robust error handling."""
 
     def __init__(self, container: Container):
         self.container = container
         self.validator = DownloadValidator()
         self.progress = ProgressTracker(container)
-        self._download_semaphore = asyncio.Semaphore(3)  # Limit concurrent downloads
+        self._download_semaphore = asyncio.Semaphore(10)
+        self._session: Optional[aiohttp.ClientSession] = None
+        self._connection_label: Optional[Label] = None
+        self.retry_config = {
+            "max_retries": 3,
+            "initial_delay": 0.5,
+            "max_delay": 5,
+            "backoff_factor": 1.5,
+        }
+        self.conn_kwargs = {
+            "limit": 30,
+            "ttl_dns_cache": 300,
+            "force_close": False,
+        }
+
+    async def __aenter__(self):
+        """Context manager entry - creates optimized session with connection pooling."""
+        tcp_connector = aiohttp.TCPConnector(**self.conn_kwargs)
+        self._session = aiohttp.ClientSession(
+            connector=tcp_connector,
+            timeout=aiohttp.ClientTimeout(total=None, connect=10),
+            headers={"Connection": "keep-alive"},
+        )
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures proper cleanup of resources."""
+        if self._session:
+            await self._session.close()
+            self._session = None
+        if self._connection_label:
+            await self._connection_label.remove()
+            self._connection_label = None
+
+    async def _show_connection_status(self, message: str) -> None:
+        """Show or update connection status message."""
+        if self._connection_label:
+            await self._connection_label.remove()
+        self._connection_label = Label(f"[yellow]{message}[/yellow]")
+        await self.container.mount(self._connection_label)
+
+    async def _clear_connection_status(self) -> None:
+        """Clear the connection status message."""
+        if self._connection_label:
+            await self._connection_label.remove()
+            self._connection_label = None
+
+    async def _check_internet_connection(self) -> bool:
+        """Check if there's an active internet connection."""
+        try:
+            async with self._get_session().get(
+                "https://8.8.8.8", timeout=1
+            ) as response:
+                return response.status == 200
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return False
+
+    async def _wait_for_connection(self) -> None:
+        """Wait for internet connection to be restored with exponential backoff."""
+        await self._show_connection_status(
+            "No internet connection. Waiting for connection to be restored..."
+        )
+        retry_count = 0
+        while not await self._check_internet_connection():
+            delay = min(
+                self.retry_config["initial_delay"]
+                * (self.retry_config["backoff_factor"] ** retry_count),
+                self.retry_config["max_delay"],
+            )
+            await asyncio.sleep(delay)
+            retry_count += 1
+        await self._clear_connection_status()
+
+    def _get_session(self) -> aiohttp.ClientSession:
+        """Get the current session or create a new one."""
+        if self._session is None:
+            tcp_connector = aiohttp.TCPConnector(**self.conn_kwargs)
+            self._session = aiohttp.ClientSession(
+                connector=tcp_connector,
+                timeout=aiohttp.ClientTimeout(total=None, connect=10),
+                headers={"Connection": "keep-alive"},
+            )
+        return self._session
+
+    async def _verify_partial_download(self, path: Path, expected_size: int) -> bool:
+        """Verify if a partial download is valid and matches expected size."""
+        if not path.exists():
+            return False
+        try:
+            current_size = path.stat().st_size
+            if current_size > expected_size:
+                path.unlink()  # Remove corrupted file
+                return False
+            return True
+        except OSError:
+            return False
+
+    async def _handle_rate_limit(self, response: aiohttp.ClientResponse) -> None:
+        """Handle rate limiting by waiting for the specified time."""
+        if response.status == 429:  # Too Many Requests
+            retry_after = int(response.headers.get("Retry-After", "5"))
+            await self.container.mount(
+                Label(
+                    f"[yellow]Rate limited. Waiting {retry_after} seconds...[/yellow]"
+                )
+            )
+            await asyncio.sleep(retry_after)
+
+    async def _download_with_retry(
+        self, url: str, dest_path: Path, chunk_size: int
+    ) -> Tuple[Path, int]:
+        """Optimized download with retry logic and resumption capability."""
+        retry_count = 0
+        total_size = 0
+        current_size = 0
+        pbar = None
+
+        chunk_size = chunk_size * 4  # Increased chunk size
+
+        while retry_count < self.retry_config["max_retries"]:
+            try:
+                if not await self._check_internet_connection():
+                    await self._wait_for_connection()
+
+                headers = {
+                    "Accept-Encoding": "gzip, deflate",  # Enable compression
+                    "Connection": "keep-alive",
+                }
+
+                if dest_path.exists():
+                    current_size = dest_path.stat().st_size
+                    headers["Range"] = f"bytes={current_size}-"
+
+                async with self._get_session().get(
+                    url, headers=headers, timeout=300
+                ) as response:
+                    await self._handle_rate_limit(response)
+                    self.validator.validate_response(response)
+
+                    if response.status == 206:  # Partial Content
+                        total_size = current_size + int(
+                            response.headers["Content-Length"]
+                        )
+                    else:
+                        total_size = int(response.headers["Content-Length"])
+                        current_size = 0
+
+                    if not pbar:
+                        pbar = await self.progress.create_progress_bar(total_size)
+                        if current_size:
+                            await self.progress.advance_progress(pbar, current_size)
+
+                    # Use buffered writing for better performance
+                    mode = "ab" if current_size > 0 else "wb"
+                    async with aiofiles.open(dest_path, mode, buffering=8192 * 4) as f:
+                        async for chunk in response.content.iter_chunked(chunk_size):
+                            if not await self._check_internet_connection():
+                                await self._wait_for_connection()
+                                continue
+
+                            if chunk:
+                                await f.write(chunk)
+                                await self.progress.advance_progress(pbar, len(chunk))
+
+                if await self._verify_partial_download(dest_path, total_size):
+                    return dest_path, total_size
+
+                raise DownloadError("Download verification failed")
+
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                if not await self._check_internet_connection():
+                    await self._wait_for_connection()
+                    continue
+
+                retry_count += 1
+                if retry_count >= self.retry_config["max_retries"]:
+                    raise DownloadError(
+                        f"Download failed after {retry_count} retries: {str(e)}"
+                    ) from None
+
+                delay = min(
+                    self.retry_config["initial_delay"]
+                    * (self.retry_config["backoff_factor"] ** (retry_count - 1)),
+                    self.retry_config["max_delay"],
+                )
+                await self.container.mount(
+                    Label(
+                        f"[yellow]Retry {retry_count} after {delay}s: {str(e)}[/yellow]"
+                    )
+                )
+                await asyncio.sleep(delay)
 
     async def download_file(
-        self, url: str, destination: PathLike, chunk_size: int = 8192
+        self,
+        url: str,
+        destination: PathLike,
+        chunk_size: int = 1024 * 1024 * 4,  # Increased default chunk size
     ) -> Tuple[Path, int]:
         """
-        Download a file with progress tracking.
+        Download a single file with optimized performance and robust error handling.
 
         Args:
             url: URL to download from
             destination: Destination path (file or directory)
-            chunk_size: Size of chunks to download
+            chunk_size: Size of chunks to download (default: 4MB)
 
         Returns:
             Tuple of (Path to downloaded file, total bytes downloaded)
 
         Raises:
-            DownloadError: If the download operation fails
+            DownloadError: If the download operation fails after all retries
         """
         try:
-            # Validate URL
+            # Validate URL and prepare destination
             self.validator.validate_url(url)
-
-            # Validate and prepare destination
             dest_path = Path(destination)
-            self.validator.validate_path_type(destination, "destination")
 
-            # If destination is a directory, use filename from URL
             if dest_path.is_dir():
                 filename = url.split("/")[-1]
                 dest_path = dest_path / filename
@@ -437,43 +554,37 @@ class Downloader:
             # Ensure destination directory exists
             dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Start download with progress tracking
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    self.validator.validate_response(response)
-
-                    total_size = int(response.headers["content-length"])
-                    pbar = await self.progress.create_progress_bar(total_size)
-
-                    with open(dest_path, "wb") as f:
-                        downloaded = 0
-                        async for chunk in response.content.iter_chunked(chunk_size):
-                            if chunk:
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                await self.progress.advance_progress(pbar, len(chunk))
-
-            await self.container.mount(
-                Label(f"[green]Successfully downloaded to {dest_path} [/green]")
+            # Perform download with retry logic
+            file_path, total_size = await self._download_with_retry(
+                url, dest_path, chunk_size
             )
 
-            return dest_path, total_size
+            await self.container.mount(
+                Label(
+                    f"[green]"
+                    f"Successfully downloaded to {file_path} "
+                    f"({total_size / 1024 / 1024:.2f} MB)"
+                    f"[/green]"
+                )
+            )
 
-        except aiohttp.ClientError as e:
-            raise DownloadError(f"Download failed: {str(e)}") from e
+            return file_path, total_size
+
         except Exception as e:
+            if dest_path.exists() and dest_path.stat().st_size == 0:
+                dest_path.unlink()  # Clean up empty file
             raise DownloadError(f"Download operation failed: {str(e)}") from e
 
     async def download_files(
-        self, urls: List[str], destination: PathLike, chunk_size: int = 8192
+        self, urls: List[str], destination: PathLike, chunk_size: int = 1024 * 1024 * 4
     ) -> Dict[str, Tuple[Optional[Path], Optional[str]]]:
         """
-        Download multiple files in parallel with progress tracking.
+        Download multiple files in parallel with optimized performance.
 
         Args:
             urls: List of URLs to download from
             destination: Destination directory
-            chunk_size: Size of chunks to download
+            chunk_size: Size of chunks to download (default: 4MB)
 
         Returns:
             Dict mapping URLs to
@@ -483,16 +594,37 @@ class Downloader:
         if not dest_path.is_dir():
             raise ValidationError("Destination must be a directory")
 
-        async def download_single(url: str) -> tuple[Path, int] | tuple[None, str]:
+        async def download_single(url: str) -> Tuple[Optional[Path], Optional[str]]:
             try:
                 async with self._download_semaphore:
-                    return await self.download_file(url, dest_path, chunk_size)
+                    downloaded_file, _ = await self.download_file(
+                        url, dest_path, chunk_size
+                    )
+                    return downloaded_file, None
             except Exception as e:
                 return None, str(e)
 
-        tasks = [download_single(url) for url in urls]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        return dict(zip(urls, results))
+        # Use connection pooling for multiple downloads
+        async with self:
+            # Create tasks for parallel downloads
+            tasks = [download_single(url) for url in urls]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            successful = sum(
+                1
+                for result in results
+                if isinstance(result, tuple) and result[0] is not None
+            )
+            await self.container.mount(
+                Label(
+                    f"[bold]Download Summary:[/bold]\n"
+                    f"Total: {len(urls)}\n"
+                    f"Successful: {successful}\n"
+                    f"Failed: {len(urls) - successful}"
+                )
+            )
+
+            return dict(zip(urls, results))
 
 
 class FileSystemOperations:
@@ -512,14 +644,11 @@ class FileSystemOperations:
             await self.container.mount(Label(f"[bold red]Error: {str(e)}[/bold red]"))
 
     async def safe_copy_directory(
-        self, source: PathLike, destination: PathLike, max_concurrent_copies=5
+        self, source: PathLike, destination: PathLike
     ) -> None:
         """Safely copy a directory with error handling."""
         try:
-            stats = await self.dir_copier.copy_directory(
-                source, destination, max_concurrent_copies=max_concurrent_copies
-            )
-            await self.print_copy_stats(stats)
+            await self.dir_copier.copy_directory(source, destination)
         except Exception as e:
             await self.container.mount(Label(f"[bold red]Error: {str(e)}[/bold red]"))
 
@@ -536,25 +665,6 @@ class FileSystemOperations:
                 Label(f"[bold red]Error listing files: {str(e)}[/bold red]")
             )
             return []
-
-    async def print_copy_stats(self, stats: CopyStats) -> None:
-        """Print copy operation statistics."""
-        await self.container.mount(
-            Label("[bold green]Copy Operation Summary:[/bold green]")
-        )
-        await self.container.mount(Label(f"Total directories: {stats.total_dirs}"))
-        await self.container.mount(Label(f"Total files: {stats.total_files}"))
-        await self.container.mount(
-            Label(
-                f"Total bytes copied: {stats.total_bytes:,} "
-                f"({stats.total_bytes / 1024 / 1024:.2f} MB)"
-            )
-        )
-
-        if stats.failed_operations:
-            await self.container.mount(Label("[bold red]Failed Operations:[/bold red]"))
-            for failure in stats.failed_operations:
-                await self.container.mount(Label(f"- {failure}"))
 
     async def safe_download(
         self, url: str, destination: PathLike
@@ -591,6 +701,27 @@ class FileSystemOperations:
             )
             return None, error_msg
 
+    async def safe_downloads(
+        self, urls: List[str], destination_folder: PathLike
+    ) -> Dict[str, Tuple[Optional[Path], Optional[str]]]:
+        """Safely download multiple files with error handling."""
+        try:
+            downloads = await self.downloader.download_files(urls, destination_folder)
+            await self.container.mount(
+                Label(
+                    f"[bold green]"
+                    f"Downloaded {len(downloads)} files successfully."
+                    f"[/bold green]"
+                )
+            )
+            return downloads
+        except Exception as e:
+            error_msg = f"Failed to download files: {str(e)}"
+            await self.container.mount(
+                Label(f"[bold red]Error: {error_msg}[/bold red]")
+            )
+            return {url: (None, error_msg) for url in urls}
+
 
 # Provide convenience functions at module level
 async def safe_copy_file(
@@ -605,13 +736,10 @@ async def safe_copy_directory(
     container: Container,
     source: PathLike,
     destination: PathLike,
-    max_concurrent_copies=5,
 ) -> None:
     """Convenience function for safely copying a directory."""
     fs_ops = FileSystemOperations(container)
-    await fs_ops.safe_copy_directory(
-        source, destination, max_concurrent_copies=max_concurrent_copies
-    )
+    await fs_ops.safe_copy_directory(source, destination)
 
 
 async def get_copied_files(container: Container, directory: PathLike) -> List[Path]:
@@ -633,4 +761,4 @@ async def safe_download_files(
 ) -> Dict[str, Tuple[Optional[Path], Optional[str]]]:
     """Convenience function for safely downloading multiple files."""
     fs_ops = FileSystemOperations(container)
-    return await fs_ops.downloader.download_files(urls, destination)
+    return await fs_ops.safe_downloads(urls, destination)
