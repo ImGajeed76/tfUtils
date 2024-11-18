@@ -89,6 +89,9 @@ class InterfaceReference:
 - call_back: {self.call_back}
         """
 
+    def __lt__(self, other):
+        return str(self.path) < str(other.path)
+
 
 class InterfaceViewer(App):
     path = InterfacePath("root")

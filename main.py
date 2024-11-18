@@ -19,6 +19,8 @@ def main():
     references = create_interface_references(interfaces)
     references.extend(create_folder_references(interfaces, interface_folder))
 
+    references.sort()
+
     app = InterfaceViewer("TF Utils", references)
     app.run()
     sys.exit(app.return_code or 0)
