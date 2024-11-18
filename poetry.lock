@@ -1478,6 +1478,23 @@ docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
 testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
+name = "pytest-print"
+version = "1.0.2"
+description = "pytest-print adds the printer fixture you can use to print messages to the user (directly to the pytest runner, not stdout)"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pytest_print-1.0.2-py3-none-any.whl", hash = "sha256:3ae7891085dddc3cd697bd6956787240107fe76d6b5cdcfcd782e33ca6543de9"},
+    {file = "pytest_print-1.0.2.tar.gz", hash = "sha256:2780350a7bbe7117f99c5d708dc7b0431beceda021b1fd3f11200670d7f33679"},
+]
+
+[package.dependencies]
+pytest = ">=8.3.2"
+
+[package.extras]
+test = ["covdefaults (>=2.3)", "coverage (>=7.6.1)", "pytest-mock (>=3.14)"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -2066,4 +2083,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "207aae6313581cbb6694185d88a420cf090b39abaa0b4f47ec573153029bc4a2"
+content-hash = "c31a82e0a522908a0f0f4ad4552e49babbc7728423e72aac06056e1d6fd2f6b7"
