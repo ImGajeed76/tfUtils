@@ -24,6 +24,15 @@ def get_installer_path():
 
 @interface("Altium Installieren", ALTIUM_INSTALLER_PATH.exists)
 async def install_altium(container: Container):
+    """
+    Installiere Altium Designer.
+
+    ## Inaktiv
+
+    Wenn steht das dieses Interface inaktiv ist,
+    dann wurde der Pfad zum Altium Installer nicht gefunden.
+    Überprüfen, ob du Zugriff auf das Laufwerk hast.
+    """
     installer_path = get_installer_path()
 
     if not installer_path:

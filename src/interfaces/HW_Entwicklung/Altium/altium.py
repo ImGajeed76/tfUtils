@@ -1,7 +1,9 @@
 import getpass
+import json
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import List, Tuple
 
 from textual.containers import Container
 
@@ -30,6 +32,17 @@ def get_all_schema_layout_templates():
 async def new_altium_project(
     container: Container, default_name=None, create_new_dir=None
 ):
+    """
+    Dieses Interface erstellt ein neues Altium Projekt aus einer Vorlage.
+    Es ändert den Projektnamen und die Projektversion und
+    fügt eine Versionshistorie hinzu.
+
+    ## Inaktiv:
+
+    Wenn steht das dieses Interface inaktiv ist,
+    dann wurde der Pfad zu den Altium Vorlagen nicht gefunden.
+    Überprüfen, ob du Zugriff auf das Laufwerk hast.
+    """
     if default_name is None:
         default_name = Path.cwd().name
 
@@ -42,14 +55,17 @@ async def new_altium_project(
         str(path.relative_to(ALTIUM_TEMPLATES_PATH)) for path in template_paths
     ]
 
-    template_path = await ask_select(
-        container, "Select an Altium Template", options=template_names
+    template_name = await ask_select(
+        container, "Wähle die Altium Projektvorlage aus", options=template_names
     )
+
+    template_path = ALTIUM_TEMPLATES_PATH / template_name
 
     project_name = await ask_input(
         container,
         "Was ist der Name deines Altium Projekts",
         placeholder=default_name,
+        regex=r"^[a-zA-Z0-9-]+$",
     )
 
     project_path = Path.cwd()
@@ -74,18 +90,60 @@ async def new_altium_project(
 
     await console.print(
         container,
-        f"[green]Successfully[/green] "
-        f"copied template to [yellow]{project_path}[/yellow]",
+        f"Die Vorlage wurde [green]erfolgreich[/green] "
+        f"nach [yellow]{project_path}[/yellow] kopiert",
     )
 
     # Run post-copy operations
+    await _update_project_vc(project_path)
     await update_project_version(container, project_path, "V1.0")
     await rename_project(container, project_path, project_name)
 
     await console.print(
         container,
-        "[green]Successfully[/green] updated project version and renamed project",
+        "Die Projektversion wurde [green]erfolgreich[/green] aktualisiert "
+        "und das Projekt wurde [green]erfolgreich[/green] umbenannt.",
     )
+
+    await console.print(
+        container,
+        "Altium Projekt wurde [green]erfolgreich[/green] erstellt. "
+        "Du kannst TF-Utils jetzt schließen.",
+    )
+
+
+async def _update_project_vc(project_path: Path):
+    project_file = next(project_path.glob("*.PRJPCB"))
+    project_name, project_version = project_file.stem.split("_")
+
+    # find all files that contain the project name
+    project_files = list(project_path.rglob(f"*{project_name}*{project_version}*"))
+
+    # create a replacement dictionary
+    replacements = {}
+    for file in project_files:
+        replacements[file] = file.with_name(
+            file.name.replace(project_name, "{project_name}").replace(
+                project_version, "{project_version}"
+            )
+        )
+
+    replacements_to_root = {}
+    for file, new_file in replacements.items():
+        new_file = new_file.relative_to(project_path)
+        file = file.relative_to(project_path)
+
+        # Skip history files
+        if str(file).startswith("History"):
+            continue
+
+        replacements_to_root[str(file.as_posix())] = str(new_file.as_posix())
+
+    vc_data = {"project_name": project_name, "replacements": replacements_to_root}
+
+    vc_file = project_path / ".vc.json"
+    with open(vc_file, "w") as f:
+        json.dump(vc_data, f)
 
 
 async def update_project_version(
@@ -113,22 +171,24 @@ async def update_project_version(
     # Get new version
     if version is None:
         question = (
-            "The new version number is composed as follows:\n"
+            "Die neue Versionsnummer setzt sich wie folgt zusammen:\n"
             "[yellow]x[/yellow].[magenta]y[/magenta]\n"
             "| |\n"
-            "| +------- [magenta]Minor version[/magenta] number "
-            "(extensions & bug fixes)\n"
-            "+--------- [yellow]Major version[/yellow] number "
-            "(new start / extremely significant change / no backward compatibility)\n"
+            "| +------- [magenta]Nebenversion[/magenta] "
+            "(Erweiterungen & Fehlerbehebungen)\n"
+            "+--------- [yellow]Hauptversion[/yellow] "
+            "(Neustart / grundlegende Änderung / keine Rückwärtskompatibilität)\n"
             "\n"
-            f"Old project version: "
+            f"Aktuelle Projektversion: "
             f"{old_project_version_major}.{old_project_version_minor}\n"
         )
 
         regex = (
-            rf"^(?:(?:${old_project_version_major + 1}\\d*\\.\\d+)|"
-            rf"${old_project_version_major}\\.(?:[${old_project_version_minor + 1}-9]"
-            rf"|\\d{2,}))$"
+            rf"^(?:"
+            rf"(?:{old_project_version_major + 1}\.\d+)|"
+            rf"(?:{old_project_version_major}\."
+            rf"(?:[{old_project_version_minor + 1}-9]|\d{{2,}}))"
+            rf")$"
         )
 
         user_input = await ask_input(
@@ -144,8 +204,9 @@ async def update_project_version(
         # Get comment
         comment = await ask_input(
             container,
-            "What is the reason for this version update?",
+            "Was ist der Grund für diese Änderung?",
             placeholder="Initial Project Creation",
+            regex=r"^[a-zA-Z0-9-]+$",
         )
 
     else:
@@ -154,33 +215,28 @@ async def update_project_version(
 
     # Get user initials
     user = getpass.getuser().split("\\")[-1][-4:]
-    user = await ask_input(container, "User initials", placeholder=user)
+    user = await ask_input(
+        container, "Dein Kürzel", placeholder=user, regex=r"^[a-zA-Z0-9-]+$"
+    )
 
     # Get current date
     date = datetime.now().strftime("%m/%d/%Y")
 
-    # New filename (without extension)
-    new_filename = f"{project_name}_{new_project_version}"
-
     # Rename files
     _rename_files(
         project_path,
-        old_filename,
-        new_filename,
-        project_name,
-        old_project_version,
         new_project_version,
+        project_name,
     )
 
     # Edit project files
     _edit_project_files(
         project_path,
-        old_filename,
-        new_filename,
-        project_name,
-        old_project_version,
         new_project_version,
+        project_name,
     )
+
+    await _update_project_vc(project_path)
 
     # Update history file
     history_line = f"{new_project_version[1:]}\t\t{user}\t{date}\t{comment}"
@@ -188,7 +244,8 @@ async def update_project_version(
         f.write(history_line + "\n")
 
     await console.print(
-        container, "[green]Project version updated successfully.[/green]"
+        container,
+        "Die Projektversion wurde [green]erfolgreich[/green] aktualisiert.\n",
     )
 
 
@@ -202,22 +259,20 @@ async def rename_project(
     old_project_name, project_version = old_filename.split("_")
 
     # Display old project name
-    await console.print(container, f"Old project name: {old_project_name}")
+    await console.print(container, f"Alter Projektname: {old_project_name}")
 
     # Get new project name
     if not new_project_name:
-        new_project_name = await ask_input(container, "Enter the new project name")
-
-    # New filename (without extension)
-    new_filename = f"{new_project_name}_{project_version}"
+        new_project_name = await ask_input(
+            container,
+            f"Wie soll das Projekt heißen? "
+            f"[yellow](Alter Projektname: {old_project_name})[/yellow]",
+            regex=r"^[a-zA-Z0-9-]+$",
+        )
 
     # Rename files
     _rename_files(
         project_path,
-        old_filename,
-        new_filename,
-        old_project_name,
-        project_version,
         project_version,
         new_project_name,
     )
@@ -225,43 +280,43 @@ async def rename_project(
     # Edit project files
     _edit_project_files(
         project_path,
-        old_filename,
-        new_filename,
-        old_project_name,
-        project_version,
         project_version,
         new_project_name,
     )
 
-    await console.print(container, "[green]Project renamed successfully.[/green]")
+    await _update_project_vc(project_path)
+
+    await console.print(
+        container, "Das Projekt wurde [green]erfolgreich[/green] umbenannt."
+    )
+
+
+def _load_file_mappings(
+    project_path: Path,
+    new_project_name: str,
+    new_version: str,
+) -> List[Tuple[str, str]]:
+    vc_file = project_path / ".vc.json"
+    with open(vc_file) as f:
+        vc_data = json.load(f)
+
+    return [
+        (
+            str(old),
+            str(new)
+            .replace("{project_name}", new_project_name)
+            .replace("{project_version}", new_version),
+        )
+        for old, new in vc_data["replacements"].items()
+    ]
 
 
 def _rename_files(
     project_path: Path,
-    old_filename,
-    new_filename,
-    project_name,
-    old_version,
     new_version,
-    new_project_name=None,
+    new_project_name,
 ):
-    new_project_name = new_project_name or project_name
-    file_mappings = [
-        (f"{old_filename}.PRJPCB", f"{new_filename}.PRJPCB"),
-        (f"{old_filename}.OutJob", f"{new_filename}.OutJob"),
-        (f"Layout/{old_filename}.PcbDoc", f"Layout/{new_filename}.PcbDoc"),
-        (
-            f"Layout/{project_name}_Panel_{old_version}.PcbDoc",
-            f"Layout/{new_project_name}_Panel_{new_version}.PcbDoc",
-        ),
-        (f"Layout/{old_filename}.PcbLib", f"Layout/{new_filename}.PcbLib"),
-        (f"Schema/{old_filename}.SchDoc", f"Schema/{new_filename}.SchDoc"),
-        (
-            f"Schema/{project_name}_Blockschema_{old_version}.SchDoc",
-            f"Schema/{new_project_name}_Blockschema_{new_version}.SchDoc",
-        ),
-        (f"Schema/{old_filename}.SchLib", f"Schema/{new_filename}.SchLib"),
-    ]
+    file_mappings = _load_file_mappings(project_path, new_project_name, new_version)
 
     for old_path, new_path in file_mappings:
         old_full_path = project_path / old_path
@@ -272,37 +327,25 @@ def _rename_files(
 
 def _edit_project_files(
     project_path: Path,
-    old_filename,
-    new_filename,
-    project_name,
-    old_version,
     new_version,
-    new_project_name=None,
+    new_project_name,
 ):
-    new_project_name = new_project_name or project_name
-    file_paths = [f"{new_filename}.PRJPCB", f"{new_filename}.OutJob"]
+    file_paths = [
+        f"{new_project_name}_{new_version}.PRJPCB",
+        f"{new_project_name}_{new_version}.OutJob",
+    ]
+
+    file_mappings = _load_file_mappings(project_path, new_project_name, new_version)
+
+    replacements = [
+        (str(Path(old).stem), str(Path(new).stem)) for old, new in file_mappings
+    ]
 
     for file_path in file_paths:
         full_path = project_path / file_path
         if full_path.exists():
             with open(full_path) as file:
                 content = file.read()
-
-            replacements = [
-                (f"{old_filename}.OutJob", f"{new_filename}.OutJob"),
-                (f"{old_filename}.PcbDoc", f"{new_filename}.PcbDoc"),
-                (
-                    f"{project_name}_Panel_{old_version}.PcbDoc",
-                    f"{new_project_name}_Panel_{new_version}.PcbDoc",
-                ),
-                (f"{old_filename}.PcbLib", f"{new_filename}.PcbLib"),
-                (f"{old_filename}.SchDoc", f"{new_filename}.SchDoc"),
-                (
-                    f"{project_name}_Blockschema_{old_version}.SchDoc",
-                    f"{new_project_name}_Blockschema_{new_version}.SchDoc",
-                ),
-                (f"{old_filename}.SchLib", f"{new_filename}.SchLib"),
-            ]
 
             for old, new in replacements:
                 content = content.replace(old, new)
@@ -317,37 +360,63 @@ def is_altium_project() -> bool:
 
 @interface("Altium Projekt umbenennen", is_altium_project)
 async def rename_altium_project(container: Container):
+    """
+    Dieses Interface benennt das Altium Projekt um.
+
+    ## Inaktiv:
+
+    Wenn steht das dieses Interface inaktiv ist,
+    dann wurde kein Altium Projekt gefunden.
+    Überprüfen, ob du dich im richtigen Ordner befindest.
+
+    ## Tipp:
+
+    Du siehst den aktuellen Pfad oben in der Kopfleiste.
+    """
     project_path = None
     for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
     if not project_path:
-        await console.print(container, "[red]No Altium project found[/red]")
+        await console.print(container, "[red]Kein Altium Projekt gefunden[/red]")
         return
 
-    await console.print(container, f"Project path: [yellow]{project_path}[/yellow]")
+    await console.print(container, f"Projekt pfad: [yellow]{project_path}[/yellow]")
 
     await rename_project(container, project_path)
 
-    await console.print(container, "[green]Successfully[/green] renamed project")
+    await console.print(container, "[green]Erfolgreich[/green] umbenannt")
 
 
 @interface("Altium Projekt Version ändern", is_altium_project)
 async def reversion_altium_project(container: Container):
+    """
+    Dieses Interface ändert die Version des Altium Projekts.
+
+    ## Inaktiv:
+
+    Wenn steht das dieses Interface inaktiv ist,
+    dann wurde kein Altium Projekt gefunden.
+    Überprüfen, ob du dich im richtigen Ordner befindest.
+
+    ## Tipp:
+
+    Du siehst den aktuellen Pfad oben in der Kopfleiste.
+    """
     project_path = None
     for path in Path.cwd().rglob("*.PRJPCB"):
         project_path = path.parent
         break
 
     if not project_path:
-        await console.print(container, "[red]No Altium project found[/red]")
+        await console.print(container, "[red]Kein Altium Projekt gefunden[/red]")
         return
 
-    await console.print(container, f"Project path: [yellow]{project_path}[/yellow]")
+    await console.print(container, f"Projekt pfad: [yellow]{project_path}[/yellow]")
 
     await update_project_version(container, project_path)
 
     await console.print(
-        container, "[green]Successfully[/green] updated project version"
+        container, "Projektversion wurde [green]erfolgreich[/green] aktualisiert."
     )
