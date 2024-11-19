@@ -1,0 +1,85 @@
+#define MyAppName "{{ product_name }}"
+#define MyAppVersion "{{ version }}"
+#define MyAppPublisher "{{ company_name }}"
+#define MyAppURL "{{ github_repo }}"
+#define MyAppExeName "{{ executable_name }}.exe"
+
+[Setup]
+AppId={{ br }}{{ app_id }}{{ bl }}
+AppName={{ br }}#MyAppName{{ bl }}
+AppVersion={{ br }}#MyAppVersion{{ bl }}
+AppVerName={{ br }}#MyAppName{{ bl }} {{ br }}#MyAppVersion{{ bl }}
+AppPublisher={{ br }}#MyAppPublisher{{ bl }}
+AppPublisherURL={{ br }}#MyAppURL{{ bl }}
+AppSupportURL={{ br }}#MyAppURL{{ bl }}
+AppUpdatesURL={{ br }}#MyAppURL{{ bl }}
+DefaultDirName={{ br }}userpf{{ bl }}\{{ br }}#MyAppName{{ bl }}
+DefaultGroupName={{ br }}#MyAppName{{ bl }}
+AllowNoIcons=yes
+LicenseFile={{ src }}\LICENSE
+InfoBeforeFile={{ src }}\README.md
+OutputDir={{ output_dir }}
+OutputBaseFilename={{ executable_name }}_setup_v{{ version }}
+SetupIconFile={{ src }}\icon.ico
+Compression=lzma2/ultra64
+SolidCompression=yes
+WizardStyle=modern
+PrivilegesRequired=lowest
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
+VersionInfoVersion={{ version }}
+VersionInfoCompany={{ company_name }}
+VersionInfoCopyright=GPL-3.0 License
+VersionInfoDescription={{ product_description }}
+ChangesEnvironment=yes
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{{ br }}cm:CreateDesktopIcon{{ bl }}"; GroupDescription: "{{ br }}cm:AdditionalIcons{{ bl }}"
+Name: "addtopath"; Description: "Add to PATH"; GroupDescription: "System Integration:"
+
+[Files]
+Source: "{{ src }}\*"; DestDir: "{{ br }}app{{ bl }}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{{ src }}\LICENSE"; DestDir: "{{ br }}app{{ bl }}"
+Source: "{{ src }}\README.md"; DestDir: "{{ br }}app{{ bl }}"
+Source: "{{ src }}\verification.json"; DestDir: "{{ br }}app{{ bl }}"
+Source: "{{ src }}\SHA256SUMS.txt"; DestDir: "{{ br }}app{{ bl }}"
+
+[Dirs]
+Name: "{{ br }}app{{ bl }}"; Permissions: users-full
+
+[Icons]
+Name: "{{ br }}group{{ bl }}\{{ br }}#MyAppName{{ bl }}"; Filename: "{{ br }}app{{ bl }}\{{ br }}#MyAppExeName{{ bl }}"
+Name: "{{ br }}group{{ bl }}\Documentation"; Filename: "{{ br }}app{{ bl }}\README.md"
+Name: "{{ br }}userdesktop{{ bl }}\{{ br }}#MyAppName{{ bl }}"; Filename: "{{ br }}app{{ bl }}\{{ br }}#MyAppExeName{{ bl }}"; Tasks: desktopicon
+
+[Code]
+procedure EnvAddPath(Path: string);
+var
+    Paths: string;
+begin
+    if not RegQueryStringValue(HKEY_CURRENT_USER,
+        'Environment',
+        'Path', Paths)
+    then Paths := '';
+
+    if Pos(';' + Uppercase(Path) + ';', ';' + Uppercase(Paths) + ';') > 0 then exit;
+
+    Paths := Paths + ';'+ Path +';'
+
+    if RegWriteStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', Paths)
+    then Log(Format('The [%s] added to PATH: [%s]', [Path, Paths]))
+    else Log(Format('Error while adding the [%s] to PATH: [%s]', [Path, Paths]));
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+    if CurStep = ssPostInstall then
+    begin
+        if IsTaskSelected('addtopath') then
+            EnvAddPath(ExpandConstant('{{ br }}app{{ bl }}'));
+    end;
+end;
