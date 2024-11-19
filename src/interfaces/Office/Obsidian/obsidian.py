@@ -28,7 +28,7 @@ async def create_new_obsidian_vault(container: Container):
     - Code Block Customizer
     """
     vault_name = await ask_input(
-        container, "Vault Name", "Wie soll dein neuer Vault heißen?"
+        container, "Wie soll dein neuer Vault heißen?", regex="^[a-zA-Z0-9_-]+$"
     )
 
     # create the vault directory
@@ -45,8 +45,6 @@ async def create_new_obsidian_vault(container: Container):
 
     obsidian_template_dir = current_dir / "ObsidianTemplate"
 
-    await safe_copy_directory(
-        container, obsidian_template_dir, vault_dir, max_concurrent_copies=20
-    )
+    await safe_copy_directory(container, obsidian_template_dir, vault_dir)
 
     await console.print(container, "[green]Vault created successfully![/green]")
