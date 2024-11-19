@@ -75,12 +75,16 @@ extra:
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: installation.md
-    - User Guide: user-guide.md
+      - Installation: installation.md
+      - User Guide: user-guide.md
   - Development:
-    - Getting Started: development/getting-started.md
-    - Development Workflow: development/workflow.md
-    - Project Structure: development/structure.md
-    - Key Components: development/components.md
-    - Creating Features: development/creating-features.md
+      - Getting Started: development/getting-started.md
+      - Development Workflow: development/workflow.md
+      - Project Structure: development/structure.md
+      - Key Components: development/components.md
+      - Creating Features: development/creating-features.md
+      - Add To Path: development/add-to-path.md
+  - Tutorials:
+      - First Interface: tutorials/first-interface.md
+      - Weather App: tutorials/weather-app.md
   - License: license.md
