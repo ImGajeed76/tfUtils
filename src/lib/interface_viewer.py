@@ -89,6 +89,9 @@ class InterfaceReference:
 - call_back: {self.call_back}
         """
 
+    def __lt__(self, other):
+        return str(self.path) < str(other.path)
+
 
 class InterfaceViewer(App):
     path = InterfacePath("root")
@@ -147,12 +150,15 @@ class InterfaceViewer(App):
             )
         for reference in self.references:
             if reference.path.parent() == self.path:
+                is_active_message = ""
+                if not reference.active:
+                    is_active_message = " [red](inactive)[/red]"
+
                 await reference_list.mount(
                     ListItem(
-                        Label(reference.name),
+                        Label(reference.name + is_active_message),
                         name=reference.description,
                         id=str(reference.path / InterfacePath(reference.name)),
-                        disabled=not reference.active,
                     )
                 )
 
@@ -185,6 +191,9 @@ class InterfaceViewer(App):
         else:
             reference = self._get_reference_by_id(event.item.id)
             if reference is None:
+                return
+
+            if not reference.active:
                 return
 
             self.path = reference.path

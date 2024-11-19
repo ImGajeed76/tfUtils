@@ -2,9 +2,15 @@ ListView {
     margin: 1;
 }
 
+Label {
+    background: black 0%;
+    color: $text;
+}
+
 ListItem {
     padding: 1;
 }
+
 
 #reference_info {
     background: $panel;
