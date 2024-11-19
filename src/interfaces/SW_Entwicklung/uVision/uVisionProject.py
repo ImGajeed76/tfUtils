@@ -1,7 +1,8 @@
+import asyncio
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from textual.containers import Container
 
@@ -13,13 +14,10 @@ from src.lib.utils import console, safe_copy_directory
 U_VISION_TEMPLATES_PATH = NetworkPath(r"T:\E\LIVE\06_SW_Entwicklung\11_Vorlagen")
 
 
-def get_all_uv_templates():
-    template_dirs = []
-
-    for path in U_VISION_TEMPLATES_PATH.rglob("*"):
-        if path.is_dir():
-            if any(file.suffix in (".uvproj", ".uvprojx") for file in path.iterdir()):
-                template_dirs.append(path)
+async def get_all_uv_templates() -> List[Path]:
+    template_dirs = [
+        path.parent for path in U_VISION_TEMPLATES_PATH.glob("**/*.uvproj*")
+    ]
 
     return template_dirs
 
@@ -110,8 +108,12 @@ def convert_to_clion(
 @interface("Neues uVision Projekt", activate=U_VISION_TEMPLATES_PATH.exists)
 async def create_new_project(container: Container):
     await console.print(container, "uVision Templates werden geladen...")
+    await console.print(container, "Das dauert normalerweise um die 20 Sekunden.")
 
-    template_paths = get_all_uv_templates()
+    container.refresh()
+    await asyncio.sleep(1)
+
+    template_paths = await get_all_uv_templates()
 
     # sort the templates by path
     template_paths.sort()
@@ -120,9 +122,11 @@ async def create_new_project(container: Container):
         str(path.relative_to(U_VISION_TEMPLATES_PATH)) for path in template_paths
     ]
 
-    template_path = await ask_select(
+    template_name = await ask_select(
         container, "Wähle eine uVision Vorlage", template_names
     )
+
+    template_path = template_paths[template_names.index(template_name)]
 
     suggested_name = Path(os.getcwd()).name
     project_name = await ask_input(
@@ -177,7 +181,7 @@ async def create_new_project(container: Container):
     )
     if modify_clion:
         os.chdir(new_dir_path)
-        convert_to_clion_wrapper(container)
+        await convert_to_clion_wrapper(container)
 
 
 def in_u_vision_project() -> bool:
