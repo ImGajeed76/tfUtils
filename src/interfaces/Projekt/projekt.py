@@ -25,94 +25,101 @@ async def create_new_project_structure(container: Container):
         create_new_system_description,
     )
 
-    project_folder_name = await ask_input(
-        container,
-        "Wie soll der Projektordner heißen?\n"
-        "Der Projektname muss das Format 'EXX-YYY-ZZ_Projectname' haben.\n"
-        "(ZZ sind zwei grosse Buchstaben)",
-        regex=r"^E\d{2}-\d{3}-[A-Z]{2}_[A-Za-z0-9]+$",
-    )
-    project_name = project_folder_name.split("_")[-1]
+    original_wd = Path().cwd()
 
-    base_dir = Path().cwd()
-    project_dir = base_dir / project_folder_name
+    try:
+        project_folder_name = await ask_input(
+            container,
+            "Wie soll der Projektordner heißen?\n"
+            "Der Projektname muss das Format 'EXX-YYY-ZZ_Projectname' haben.\n"
+            "(ZZ sind zwei grosse Buchstaben)",
+            regex=r"^E\d{2}-\d{3}-[A-Z]{2}_[A-Za-z0-9]+$",
+        )
+        project_name = project_folder_name.split("_")[-1]
 
-    if project_dir.exists():
-        await console.print(container, "[red]Projektordner existiert bereits![/red]")
-        return
+        base_dir = Path().cwd()
+        project_dir = base_dir / project_folder_name
 
-    project_dir.mkdir()
+        if project_dir.exists():
+            await console.print(
+                container, "[red]Projektordner existiert bereits![/red]"
+            )
+            return
 
-    await safe_copy_directory(container, DEFAULT_STRUCT_FOLDER, project_dir)
+        project_dir.mkdir()
 
-    await console.print(container, "[green]Projekt erfolgreich erstellt![/green]")
+        await safe_copy_directory(container, DEFAULT_STRUCT_FOLDER, project_dir)
 
-    # ------ SCHEMA LAYOUT ------
-    await console.print(container, "-" * 50)
+        await console.print(container, "[green]Projekt erfolgreich erstellt![/green]")
 
-    sl_dir = project_dir / "Hardware" / "SCH_PCB"
+        # ------ SCHEMA LAYOUT ------
+        await console.print(container, "-" * 50)
 
-    if await ask_yes_no(
-        container,
-        "Möchten Sie ein Schema Layout im neuen Projekt erstellen?",
-    ):
-        os.chdir(sl_dir)
+        sl_dir = project_dir / "Hardware" / "SCH_PCB"
 
-        sl_connection = sl_dir / "02_Vorlage_Schema_Layout - Verknüpfung.lnk"
-        if sl_connection.exists():
-            sl_connection.unlink()
+        if await ask_yes_no(
+            container,
+            "Möchten Sie ein Schema Layout im neuen Projekt erstellen?",
+        ):
+            os.chdir(sl_dir)
 
-        await new_altium_project(container, project_name, True)
+            sl_connection = sl_dir / "02_Vorlage_Schema_Layout - Verknüpfung.lnk"
+            if sl_connection.exists():
+                sl_connection.unlink()
 
-    # ------ Checklist ------
-    await console.print(container, "-" * 50)
+            await new_altium_project(container, project_name, True)
 
-    checklist_dir = project_dir / "Hardware" / "SCH_PCB"
+        # ------ Checklist ------
+        await console.print(container, "-" * 50)
 
-    if await ask_yes_no(
-        container, "Möchten Sie Checklisten im neuen Projekt erstellen?"
-    ):
-        os.chdir(checklist_dir)
+        checklist_dir = project_dir / "Hardware" / "SCH_PCB"
 
-        checklist_connection = checklist_dir / "08_Checklisten - Verknüpfung.lnk"
-        if checklist_connection.exists():
-            checklist_connection.unlink()
+        if await ask_yes_no(
+            container, "Möchten Sie Checklisten im neuen Projekt erstellen?"
+        ):
+            os.chdir(checklist_dir)
 
-        await create_schema_checklist(container)
-        await create_pcb_checklist(container)
+            checklist_connection = checklist_dir / "08_Checklisten - Verknüpfung.lnk"
+            if checklist_connection.exists():
+                checklist_connection.unlink()
 
-    # ------ Obsidian Vault ------
-    await console.print(container, "-" * 50)
+            await create_schema_checklist(container)
+            await create_pcb_checklist(container)
 
-    obsidian_dir = project_dir / "Journal"
+        # ------ Obsidian Vault ------
+        await console.print(container, "-" * 50)
 
-    if await ask_yes_no(
-        container,
-        "Möchten Sie einen Obsidian Vault im neuen Projekt erstellen?",
-    ):
-        os.chdir(obsidian_dir)
+        obsidian_dir = project_dir / "Journal"
 
-        await create_new_obsidian_vault(container)
+        if await ask_yes_no(
+            container,
+            "Möchten Sie einen Obsidian Vault im neuen Projekt erstellen?",
+        ):
+            os.chdir(obsidian_dir)
 
-    # ------ Systembeschreibung ------
-    await console.print(container, "-" * 50)
+            await create_new_obsidian_vault(container)
 
-    sys_desc_dir = project_dir / "Systembeschreibung"
+        # ------ Systembeschreibung ------
+        await console.print(container, "-" * 50)
 
-    if await ask_yes_no(
-        container,
-        "Möchten Sie eine Systembeschreibung im neuen Projekt erstellen?",
-    ):
-        os.chdir(sys_desc_dir)
+        sys_desc_dir = project_dir / "Systembeschreibung"
 
-        sys_link = sys_desc_dir / "01_Office - Verknüpfung.lnk"
-        if sys_link.exists():
-            sys_link.unlink()
+        if await ask_yes_no(
+            container,
+            "Möchten Sie eine Systembeschreibung im neuen Projekt erstellen?",
+        ):
+            os.chdir(sys_desc_dir)
 
-        await create_new_system_description(container)
+            sys_link = sys_desc_dir / "01_Office - Verknüpfung.lnk"
+            if sys_link.exists():
+                sys_link.unlink()
 
-    await console.print(container, "-" * 50)
+            await create_new_system_description(container)
 
-    await console.print(
-        container, "[green]Alle Schritte erfolgreich abgeschlossen![/green]"
-    )
+        await console.print(container, "-" * 50)
+
+        await console.print(
+            container, "[green]Alle Schritte erfolgreich abgeschlossen![/green]"
+        )
+    finally:
+        os.chdir(original_wd)
