@@ -1,12 +1,15 @@
 from functools import wraps
-from typing import Any, Callable, Coroutine, Union
+from typing import Any, Callable, Coroutine, TypeVar, Union
 
 from textual.containers import Container
 
+T = TypeVar("T")
 
-def interface(
-    name: str, activate: Union[bool, Callable[[], bool]] = True
-) -> Callable[[Callable[[Container], Coroutine]], Callable[[Container], Coroutine]]:
+
+def interface(name: str, activate: Union[bool, Callable[[], bool]] = True) -> Callable[
+    [Callable[[Container, ...], Coroutine[Any, Any, T]]],
+    Callable[[Container, ...], Coroutine[Any, Any, T]],
+]:
     """
     Decorator to mark and name interface functions with runtime activation check.
 
@@ -16,11 +19,11 @@ def interface(
     """
 
     def decorator(
-        func: Callable[[Container], Coroutine]
-    ) -> Callable[[Container], Coroutine]:
+        func: Callable[[Container, ...], Coroutine[Any, Any, T]]
+    ) -> Callable[[Container, ...], Coroutine[Any, Any, T]]:
         @wraps(func)
-        async def wrapper(container: Container) -> Any:
-            return await func(container)
+        async def wrapper(container: Container, *args: Any, **kwargs: Any) -> T:
+            return await func(container, *args, **kwargs)
 
         wrapper._NAME = name
         wrapper._IS_INTERFACE = True

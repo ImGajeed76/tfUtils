@@ -38,7 +38,7 @@ async def create_new_project_structure(container: Container):
     project_dir = base_dir / project_folder_name
 
     if project_dir.exists():
-        await console.print(console, "[red]Projektordner existiert bereits![/red]")
+        await console.print(container, "[red]Projektordner existiert bereits![/red]")
         return
 
     project_dir.mkdir()
@@ -62,9 +62,7 @@ async def create_new_project_structure(container: Container):
         if sl_connection.exists():
             sl_connection.unlink()
 
-        await new_altium_project(
-            container, default_name=project_name, create_new_dir=True
-        )
+        await new_altium_project(container, project_name, True)
 
     # ------ Checklist ------
     await console.print(container, "-" * 50)
@@ -112,3 +110,9 @@ async def create_new_project_structure(container: Container):
             sys_link.unlink()
 
         await create_new_system_description(container)
+
+    await console.print(container, "-" * 50)
+
+    await console.print(
+        container, "[green]Alle Schritte erfolgreich abgeschlossen![/green]"
+    )
