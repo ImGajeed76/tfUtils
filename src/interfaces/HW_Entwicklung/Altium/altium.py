@@ -65,7 +65,7 @@ async def new_altium_project(
         container,
         "Was ist der Name deines Altium Projekts",
         placeholder=default_name,
-        regex=r"^[a-zA-Z0-9_-]+$",
+        regex=r"^[a-zA-Z0-9-]+$",
     )
 
     project_path = Path.cwd()
@@ -206,7 +206,7 @@ async def update_project_version(
             container,
             "Was ist der Grund für diese Änderung?",
             placeholder="Initial Project Creation",
-            regex=r"^[a-zA-Z0-9_-]+$",
+            regex=r"^[a-zA-Z0-9-]+$",
         )
 
     else:
@@ -216,7 +216,7 @@ async def update_project_version(
     # Get user initials
     user = getpass.getuser().split("\\")[-1][-4:]
     user = await ask_input(
-        container, "Dein Kürzel", placeholder=user, regex=r"^[a-zA-Z0-9_-]+$"
+        container, "Dein Kürzel", placeholder=user, regex=r"^[a-zA-Z0-9-]+$"
     )
 
     # Get current date
@@ -267,7 +267,7 @@ async def rename_project(
             container,
             f"Wie soll das Projekt heißen? "
             f"[yellow](Alter Projektname: {old_project_name})[/yellow]",
-            regex=r"^[a-zA-Z0-9_-]+$",
+            regex=r"^[a-zA-Z0-9-]+$",
         )
 
     # Rename files
@@ -328,7 +328,7 @@ def _rename_files(
 def _edit_project_files(
     project_path: Path,
     new_version,
-    new_project_name=None,
+    new_project_name,
 ):
     file_paths = [
         f"{new_project_name}_{new_version}.PRJPCB",
