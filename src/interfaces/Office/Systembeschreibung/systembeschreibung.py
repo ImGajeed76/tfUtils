@@ -81,5 +81,5 @@ async def export_system_description_images(container: Container):
         shutil.rmtree(temp_word_folder)
 
     await console.print(
-        console, f"[green]Images exported successfully to {target_dir}[/green]"
+        container, f"[green]Images exported successfully to {target_dir}[/green]"
     )
