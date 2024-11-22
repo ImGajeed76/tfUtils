@@ -7,7 +7,7 @@ administrative privileges.
 
 ### 1. Download the Installer
 
-1. Visit our [releases page](https://github.com/ImGajeed76/tfUtils/releases)
+1. Visit our [releases page](https://github.com/ImGajeed76/tfUtils/releases){:target="_blank"}
 2. Look for the latest version
 3. Download `tfutils_setup_vX.X.X.exe`
    > 💡 **Tip**: Always download the latest version to get the newest features and security updates
