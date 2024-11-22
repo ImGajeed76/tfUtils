@@ -30,7 +30,7 @@ student experiences, it addresses common challenges and automates repetitive tas
 
 Getting started with TF Utils is easy:
 
-1. Download the latest installer from our [releases page](https://github.com/ImGajeed76/tfUtils/releases)
+1. Download the latest installer from our [releases page](https://github.com/ImGajeed76/tfUtils/releases){:target="_blank"}
 2. Run the installer and check "Add to PATH" during installation
 3. Open your project folder and type `tfutils` in the address bar
 
