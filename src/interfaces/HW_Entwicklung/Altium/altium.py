@@ -25,7 +25,12 @@ def get_all_schema_layout_templates():
             if any(file.suffix in (".PRJPCB") for file in path.iterdir()):
                 template_dirs.append(path)
 
-    return template_dirs
+    validated_dirs = []
+    for path in template_dirs:
+        if len(path.relative_to(ALTIUM_TEMPLATES_PATH).parts) == 1:
+            validated_dirs.append(path)
+
+    return validated_dirs
 
 
 @interface("Neues Altium Projekt", activate=ALTIUM_TEMPLATES_PATH.exists)
