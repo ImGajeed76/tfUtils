@@ -15,6 +15,11 @@ Our development workflow follows these main steps:
 
 ## Detailed Workflow
 
+Before you start you may want to start your IDE. You can use PyCharm, VSCode, or just a simple text editor.
+We will be using PyCharm for this guide but every instruction can be applied to any IDE.
+
+If you don't know how to open the project in PyCharm, you can follow the instructions in the [Getting Started](getting-started.md) guide.
+
 ### 1. Setting Up Your Branch
 
 Always start your work by creating a new feature branch from the latest `main`:
@@ -64,7 +69,8 @@ poetry run pre-commit run --all-files
 ```
 
 > 💡 **Tip**: Create a `testing` folder in your root directory.
-> Then instead of running `poetry run python main.py`, move to the `testing` folder and run `poetry run python ../main.py`.
+> Then instead of running `poetry run python main.py`, move to the `testing` folder and run
+`poetry run python ../main.py`.
 
 #### Commit Guidelines
 
