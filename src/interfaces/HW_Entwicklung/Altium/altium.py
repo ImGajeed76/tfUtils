@@ -133,8 +133,12 @@ async def _update_project_vc(project_path: Path):
         new_file = new_file.relative_to(project_path)
         file = file.relative_to(project_path)
 
-        # Skip history files
-        if str(file).startswith("History"):
+        # Skip History folder
+        if "History" in str(file):
+            continue
+
+        # Skip __Previews folder
+        if "__Previews" in str(file):
             continue
 
         replacements_to_root[str(file.as_posix())] = str(new_file.as_posix())
@@ -337,9 +341,9 @@ def _edit_project_files(
 
     file_mappings = _load_file_mappings(project_path, new_project_name, new_version)
 
-    replacements = [
-        (str(Path(old).stem), str(Path(new).stem)) for old, new in file_mappings
-    ]
+    replacements = set(
+        [(str(Path(old).stem), str(Path(new).stem)) for old, new in file_mappings]
+    )
 
     for file_path in file_paths:
         full_path = project_path / file_path
