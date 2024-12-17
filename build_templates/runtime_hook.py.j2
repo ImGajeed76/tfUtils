@@ -1,0 +1,55 @@
+# runtime_hook.py.j2
+import os
+import sys
+import ctypes
+from ctypes import wintypes
+
+
+def pre_init():
+    """
+    Initialize the application environment before the main application starts.
+    This ensures proper DLL loading and PATH setup for Windows.
+    """
+    if sys.platform == 'win32':
+        if hasattr(sys, 'frozen'):
+            # Get the directory where the exe is located
+            exe_dir = os.path.dirname(sys.executable)
+
+            # Add the exe directory to PATH
+            os.environ['PATH'] = exe_dir + os.pathsep + os.environ.get('PATH', '')
+
+            # Add _internal directory to PATH if it exists
+            # This is where PyInstaller places additional DLLs
+            internal_dir = os.path.join(exe_dir, '_internal')
+            if os.path.exists(internal_dir):
+                os.environ['PATH'] = internal_dir + os.pathsep + os.environ['PATH']
+
+            # Set DLL directory search path
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            if hasattr(kernel32, 'SetDllDirectoryW'):
+                kernel32.SetDllDirectoryW(exe_dir)
+
+            # Configure PowerShell preference
+            try:
+                # Windows constants
+                ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+                STD_OUTPUT_HANDLE = -11
+
+                # Get handle to stdout
+                handle = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+
+                # Get current console mode
+                mode = wintypes.DWORD()
+                kernel32.GetConsoleMode(handle, ctypes.byref(mode))
+
+                # Enable virtual terminal processing
+                kernel32.SetConsoleMode(handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
+                # Set preferred shell
+                if not os.environ.get('INSIDE_POWERSHELL'):
+                    os.environ['PREFERRED_SHELL'] = 'powershell'
+            except Exception:
+                pass  # Fail silently if unable to set PowerShell preference
+
+
+pre_init()
