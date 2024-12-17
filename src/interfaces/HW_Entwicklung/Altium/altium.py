@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from textual.containers import Container
 
@@ -25,7 +25,12 @@ def get_all_schema_layout_templates():
             if any(file.suffix in (".PRJPCB") for file in path.iterdir()):
                 template_dirs.append(path)
 
-    return template_dirs
+    validated_dirs = []
+    for path in template_dirs:
+        if len(path.relative_to(ALTIUM_TEMPLATES_PATH).parts) == 1:
+            validated_dirs.append(path)
+
+    return validated_dirs
 
 
 @interface("Neues Altium Projekt", activate=ALTIUM_TEMPLATES_PATH.exists)
@@ -362,6 +367,54 @@ def is_altium_project() -> bool:
     return any(file.suffix in (".PRJPCB") for file in Path.cwd().rglob("*.PRJPCB"))
 
 
+def _get_project_name_mapping_from_vc(project_path: Path) -> Tuple[Path, str]:
+    vc_file = project_path / ".vc.json"
+    with open(vc_file) as f:
+        vc_data = json.load(f)
+
+    return project_path, f"{vc_data['project_name']} ({project_path})"
+
+
+async def get_altium_project_path(container: Container) -> Optional[Path]:
+    """
+    Returns the path to the Altium project.
+    If multiple projects are found, the user can select one.
+
+    Returns:
+        The path to the Altium project or None if no project was found.
+    """
+    project_path = None
+
+    paths = list(Path.cwd().rglob("*.PRJPCB"))
+
+    for path in paths:
+        await _update_project_vc(path.parent)
+
+    if len(paths) > 1:
+        project_names = [
+            _get_project_name_mapping_from_vc(path.parent) for path in paths
+        ]
+
+        project_name = await ask_select(
+            container,
+            "Wähle ein Altium Projekt aus",
+            options=[name for path, name in project_names],
+        )
+
+        project_path = next(
+            path for path, name in project_names if name == project_name
+        )
+
+    if len(paths) == 1:
+        project_path = paths[0].parent
+
+    if not project_path:
+        await console.print(container, "[red]Kein Altium Projekt gefunden[/red]")
+        return None
+
+    return project_path
+
+
 @interface("Altium Projekt umbenennen", is_altium_project)
 async def rename_altium_project(container: Container):
     """
@@ -377,13 +430,8 @@ async def rename_altium_project(container: Container):
 
     Du siehst den aktuellen Pfad oben in der Kopfleiste.
     """
-    project_path = None
-    for path in Path.cwd().rglob("*.PRJPCB"):
-        project_path = path.parent
-        break
-
+    project_path = await get_altium_project_path(container)
     if not project_path:
-        await console.print(container, "[red]Kein Altium Projekt gefunden[/red]")
         return
 
     await console.print(container, f"Projekt pfad: [yellow]{project_path}[/yellow]")
@@ -408,13 +456,8 @@ async def reversion_altium_project(container: Container):
 
     Du siehst den aktuellen Pfad oben in der Kopfleiste.
     """
-    project_path = None
-    for path in Path.cwd().rglob("*.PRJPCB"):
-        project_path = path.parent
-        break
-
+    project_path = await get_altium_project_path(container)
     if not project_path:
-        await console.print(container, "[red]Kein Altium Projekt gefunden[/red]")
         return
 
     await console.print(container, f"Projekt pfad: [yellow]{project_path}[/yellow]")
