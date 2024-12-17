@@ -229,9 +229,9 @@ def build_executable(version: str):
         "x64",
         # C++ Binarys
         "--add-binary",
-        r"C:\Windows\System32\vcruntime140.dll;.",
+        rf"{str(base_dir / 'windows_binarys')}\vcruntime140.dll;.",
         "--add-binary",
-        r"C:\Windows\System32\msvcp140.dll;.",
+        rf"{str(base_dir / 'windows_binarys')}\msvcp140.dll;.",
     ]
 
     # Add excludes
