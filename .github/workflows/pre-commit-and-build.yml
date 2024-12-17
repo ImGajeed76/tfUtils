@@ -106,7 +106,7 @@ jobs:
           files: |
             dist/tfutils_setup_v*.exe
             dist/tfutils/verification.json
-            dist/tfutils/SHA256SUMS
+            dist/tfutils/SHA256SUMS.txt
           prerelease: true
           name: "Development Build ${{ steps.datetime.outputs.datetime }}"
           tag_name: "dev-${{ steps.datetime.outputs.datetime }}-${{ github.sha }}"
@@ -180,13 +180,13 @@ jobs:
           files: |
             dist/tfutils_setup_v*.exe
             dist/tfutils/verification.json
-            dist/tfutils/SHA256SUMS
+            dist/tfutils/SHA256SUMS.txt
           name: "Release ${{ github.ref_name }}"
           body: |
             Release ${{ github.ref_name }}
 
             ## Verification
-            SHA256 checksums are provided in the SHA256SUMS file.
+            SHA256 checksums are provided in the SHA256SUMS.txt file.
             Additional verification information can be found in verification.json.
 
             ## Installation
