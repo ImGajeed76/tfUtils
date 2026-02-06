@@ -24,7 +24,11 @@ That's it! You're ready to go! 🎉
 - 📝 [Report Issues](https://github.com/ImGajeed76/tfUtils/issues)
 - 💡 [Join Discussions](https://github.com/ImGajeed76/tfUtils/discussions)
 - 📧 Contact: [ImGajeed76](mailto:github.staging362@passmail.net)
+- 📝 [Read the blog post](https://oseifert.ch/blog/building-tfutils)
 
 ## 📄 License
 
 TF Utils is licensed under the GNU GPL v3.0. See [LICENSE](LICENSE) for details.
+
+---
+Built with ❤️ by [Oliver Seifert](https://oseifert.ch) | [Blog Post](https://oseifert.ch/blog/building-tfutils)
